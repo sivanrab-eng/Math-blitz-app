@@ -1033,7 +1033,7 @@ export default function App() {
       g.roundCorrect++;
       g.totalCorrect = (g.totalCorrect||0) + 1;
       if(g.streak > g.maxStreak) g.maxStreak = g.streak;
-      g.dur = Math.max(g.dur * 0.95, 3);
+      g.dur = Math.max(g.dur * 0.95, 10);
       if(g.streak >= 5 && g.diff==='easy') { g.diff='medium'; g.streak=0; }
       else if(g.streak >= 5 && g.diff==='medium') { g.diff='hard'; g.streak=0; }
 
