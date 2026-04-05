@@ -278,35 +278,35 @@ const topicAreaPerimeter = {
       const w = randInt(3,12), h = randInt(3,12);
       shape = drawRect(w,h);
       if(randInt(0,1)) {
-        question = 'שטח מלבן'; answer = w*h; label = 'מה השטח?';
+        question = 'שטח מלבן\n'+w+' \u00D7 '+h; answer = w*h; label = 'מה השטח?';
       } else {
-        question = 'היקף מלבן'; answer = 2*(w+h); label = 'מה ההיקף?';
+        question = 'היקף מלבן\n'+w+' \u00D7 '+h; answer = 2*(w+h); label = 'מה ההיקף?';
       }
     } else if(diff === 'medium') {
       const type = randInt(0,2);
       if(type===0) {
         const base = randInt(4,14), height = randInt(3,10);
         shape = drawTriangle(base,height);
-        question = 'שטח משולש'; answer = (base*height)/2; label = 'מה השטח?';
+        question = 'שטח משולש\nבסיס='+base+' גובה='+height; answer = (base*height)/2; label = 'מה השטח?';
       } else if(type===1) {
         const side = randInt(3,15);
         shape = drawSquare(side);
-        if(randInt(0,1)) { question = 'שטח ריבוע'; answer = side*side; label = 'מה השטח?'; }
-        else { question = 'היקף ריבוע'; answer = side*4; label = 'מה ההיקף?'; }
+        if(randInt(0,1)) { question = 'שטח ריבוע\nצלע='+side; answer = side*side; label = 'מה השטח?'; }
+        else { question = 'היקף ריבוע\nצלע='+side; answer = side*4; label = 'מה ההיקף?'; }
       } else {
         const base = randInt(4,12), height = randInt(3,8);
         shape = drawParallelogram(base,height);
-        question = 'שטח מקבילית'; answer = base*height; label = 'מה השטח?';
+        question = 'שטח מקבילית\nבסיס='+base+' גובה='+height; answer = base*height; label = 'מה השטח?';
       }
     } else {
       if(randInt(0,1)) {
         const a = randInt(4,10), b = randInt(6,14), h = randInt(3,8);
         shape = drawTrapezoid(a,b,h);
-        question = 'שטח טרפז'; answer = (a+b)*h/2; label = 'מה השטח?';
+        question = 'שטח טרפז\nבסיסים='+a+','+b+' גובה='+h; answer = (a+b)*h/2; label = 'מה השטח?';
       } else {
         const w1 = randInt(3,6), h1 = randInt(5,10), w2 = randInt(3,6), h2 = randInt(2,4);
         shape = drawRect(w1,h1,'מלבן 1') + drawRect(w2,h2,'מלבן 2');
-        question = 'שטח צורה מורכבת'; answer = w1*h1+w2*h2; label = 'מה השטח הכולל?';
+        question = 'שטח צורה מורכבת\n'+w1+'\u00D7'+h1+' + '+w2+'\u00D7'+h2; answer = w1*h1+w2*h2; label = 'מה השטח הכולל?';
       }
     }
     const ansStr = Number.isInteger(answer) ? String(answer) : String(Math.round(answer*10)/10);
@@ -1386,22 +1386,8 @@ export default function App() {
         .char-think{animation:charThinkAnim 2s ease infinite}
         @keyframes achSlide{0%{transform:translateX(-50%) translateY(-80px);opacity:0}15%{transform:translateX(-50%) translateY(0);opacity:1}85%{transform:translateX(-50%) translateY(0);opacity:1}100%{transform:translateX(-50%) translateY(-80px);opacity:0}}
         .ach-toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:500;display:flex;align-items:center;gap:8px;padding:10px 20px;border-radius:20px;background:linear-gradient(135deg,rgba(124,58,237,0.9),rgba(76,29,149,0.9));border:2px solid #a78bfa;color:#fff;font-weight:800;font-size:14px;box-shadow:0 8px 24px rgba(124,58,237,0.5);animation:achSlide 3s ease forwards;white-space:nowrap}
-        @keyframes starTwinkle{0%,100%{opacity:0.2;transform:scale(0.5)}50%{opacity:1;transform:scale(1)}}
-        .starfield{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:0;overflow:hidden}
-        .star{position:absolute;border-radius:50%;background:#fff}
-        .opt-3d{position:relative;border:none;border-radius:18px;font-size:17px;font-weight:900;color:#fff;cursor:pointer;padding:0;height:68px;transition:transform 0.08s;overflow:hidden;-webkit-tap-highlight-color:transparent}
-        .opt-3d:active:not(:disabled){transform:translateY(4px) scale(0.97)}
-        .opt-3d:disabled{filter:brightness(0.7)}
-        .opt-3d-shadow{position:absolute;top:0;right:0;bottom:0;left:0;border-radius:18px;transform:translateY(4px)}
-        .opt-3d-face{position:absolute;top:0;right:0;left:0;bottom:4px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;text-shadow:0 2px 3px rgba(0,0,0,0.25)}
-        .opt-3d-face::before{content:'';position:absolute;top:0;right:0;bottom:0;left:0;border-radius:18px;background:radial-gradient(circle at 30% 35%,rgba(255,255,255,0.2) 5px,transparent 5px),radial-gradient(circle at 70% 35%,rgba(255,255,255,0.2) 5px,transparent 5px),radial-gradient(circle at 30% 70%,rgba(255,255,255,0.2) 5px,transparent 5px),radial-gradient(circle at 70% 70%,rgba(255,255,255,0.2) 5px,transparent 5px);pointer-events:none}
-        .opt-3d-face::after{content:'';position:absolute;top:0;left:0;right:0;height:45%;border-radius:18px 18px 40% 40%;background:linear-gradient(180deg,rgba(255,255,255,0.18) 0%,transparent 100%);pointer-events:none}
-        .opt-3d.correct-3d .opt-3d-shadow{background:#15803d!important}
-        .opt-3d.correct-3d .opt-3d-face{background:linear-gradient(160deg,#86efac,#22c55e)!important;animation:correctPulse3d 0.4s ease}
-        .opt-3d.wrong-3d .opt-3d-shadow{background:#991b1b!important}
-        .opt-3d.wrong-3d .opt-3d-face{background:linear-gradient(160deg,#fca5a5,#ef4444)!important;animation:wrongShake3d 0.3s ease}
-        @keyframes correctPulse3d{0%{transform:scale(1)}50%{transform:scale(1.03)}100%{transform:scale(1)}}
-        @keyframes wrongShake3d{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+        /* starfield removed */
+        /* clean buttons - no 3D */
         @keyframes prizeFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
         @keyframes prizeIn{0%{transform:scale(0) rotate(-10deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
         .prize-box{animation:prizeFloat 2s ease-in-out infinite}
@@ -1413,15 +1399,6 @@ export default function App() {
       `}</style>
 
       <div className="grid-bg fixed inset-0 pointer-events-none"/>
-      {/* Starfield */}
-      <div className="starfield">{Array.from({length:40},(_,i)=>(
-        <div key={i} className="star" style={{
-          width:randInt(1,3)+'px',height:randInt(1,3)+'px',
-          top:((i*17+7)%100)+'%',left:((i*31+13)%100)+'%',
-          opacity:0.2+Math.random()*0.6,
-          animation:`starTwinkle ${2+Math.random()*4}s ease-in-out ${Math.random()*3}s infinite alternate`
-        }}/>
-      ))}</div>
       <div className="fixed top-0 left-0 right-0 h-40 pointer-events-none" style={{background:'radial-gradient(ellipse at 50% 0%,rgba(0,229,255,0.08) 0%,transparent 70%)'}}/>
       <div className="fixed bottom-0 left-0 right-0 h-40 pointer-events-none" style={{background:'radial-gradient(ellipse at 50% 100%,rgba(255,0,128,0.06) 0%,transparent 70%)'}}/>
 
@@ -1612,29 +1589,22 @@ export default function App() {
               )}
             </div>
 
-            {/* Options Grid - 3D Lego Style */}
+            {/* Options Grid - Clean Cyberpunk */}
             <div className="grid grid-cols-2 gap-3 mt-auto">
               {question.options.map((opt,i) => {
-                const colors = [
-                  {face:'linear-gradient(160deg,#60a5fa,#2563eb)',shadow:'#1d4ed8'},
-                  {face:'linear-gradient(160deg,#fde68a,#f59e0b)',shadow:'#b45309',dark:true},
-                  {face:'linear-gradient(160deg,#fdba74,#f97316)',shadow:'#c2410c'},
-                  {face:'linear-gradient(160deg,#93c5fd,#3b82f6)',shadow:'#1d4ed8'},
-                ];
-                const c = colors[i%4];
+                let borderC = 'rgba(255,255,255,0.15)';
+                let bgC = 'rgba(255,255,255,0.04)';
+                let textC = '#fff';
                 let extraClass = '';
-                if(feedback && i === question.correctIdx) extraClass='correct-3d';
-                else if((feedback==='wrong'||feedback==='close') && i === selIdx) extraClass='wrong-3d';
-                else if(feedback==='timeout' && i === question.correctIdx) extraClass='correct-3d';
+                if(feedback && i === question.correctIdx) { borderC='#00e5ff'; bgC='rgba(0,229,255,0.15)'; textC='#00e5ff'; extraClass='correct-anim'; }
+                else if((feedback==='wrong'||feedback==='close') && i === selIdx) { borderC='#ff0080'; bgC='rgba(255,0,128,0.15)'; textC='#ff0080'; extraClass='wrong-anim'; }
+                else if(feedback==='timeout' && i === question.correctIdx) { borderC='#00e5ff'; bgC='rgba(0,229,255,0.1)'; textC='#00e5ff'; }
 
                 return (
                   <button key={i} onClick={()=>handleAnswer(i)} disabled={!!feedback}
-                    className={'opt-3d slide-up '+extraClass}
-                    style={{animationDelay:(i*0.06)+'s'}}>
-                    <div className="opt-3d-shadow" style={{background:c.shadow}}/>
-                    <div className="opt-3d-face" style={{background:c.face,color:c.dark?'#1c1917':'#fff'}}>
-                      <span dir="ltr" style={{fontFamily:"'Orbitron',sans-serif",fontSize:'17px',fontWeight:900,position:'relative',zIndex:2}}>{opt}</span>
-                    </div>
+                    className={'rounded-2xl py-5 text-center border-2 btn-option slide-up '+extraClass}
+                    style={{borderColor:borderC,background:bgC,animationDelay:(i*0.06)+'s',color:textC}}>
+                    <span dir="ltr" className="text-2xl font-black" style={{fontFamily:"'Orbitron',sans-serif"}}>{opt}</span>
                   </button>
                 );
               })}
