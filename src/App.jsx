@@ -821,10 +821,10 @@ const genQuestion = (diff, selectedTopicIds) => {
   const topic = available.length > 0 ? pick(available) : topicFractions;
   const q = topic.generate(diff);
   q.topicId = topic.id;
-  // Auto-generate solution explanation from question text and answer
-  const exp = EXPLANATIONS[topic.id];
-  if(exp) {
-    q.solutionSteps = exp.f + '\n' + (q.question.includes('\n') ? q.question.split('\n')[0] : q.question) + ' → ' + q.correct;
+  // Auto-generate solution explanation if not set by topic
+  if(!q.e) {
+    const qClean = q.question.replace(/\n/g, ' ').trim();
+    q.e = qClean + ' = ' + q.correct;
   }
   return q;
 };
@@ -1614,31 +1614,9 @@ export default function App() {
               })}
             </div>
 
-            {feedback && (
+            {feedback==='correct' && (
               <div className="text-center mt-3 pop-in">
-                {feedback==='correct' && <span className="text-lg font-black" style={{color:'#00e5ff'}}>נכון! 🎯 +{Math.max(10,Math.round(timeLeft*10))}</span>}
-                {feedback==='close' && <span className="text-lg font-black" style={{color:'#ff0080'}}>כמעט! 🤏 ❤️‍🩹</span>}
-                {feedback==='wrong' && <span className="text-lg font-black" style={{color:'#ff0080'}}>לא נכון 😬 ❤️‍🩹</span>}
-                {feedback==='timeout' && <span className="text-lg font-black" style={{color:'#ff0080'}}>נגמר הזמן! ⏰ ❤️‍🩹</span>}
-                {/* Explanation when wrong */}
-                {(feedback==='wrong'||feedback==='close'||feedback==='timeout') && question.topicId && EXPLANATIONS[question.topicId] && (
-                  <div className="explain-box mt-3 text-right">
-                    <div className="explain-title">📖 איך פותרים?</div>
-                    <div className="text-xs text-gray-300 leading-relaxed">{EXPLANATIONS[question.topicId].b}</div>
-                    <div className="explain-formula">{EXPLANATIONS[question.topicId].f}</div>
-                    {question.solutionSteps && (
-                      <div className="text-xs mt-2 py-2 px-3 rounded-lg" style={{background:'rgba(0,229,255,0.08)',border:'1px solid rgba(0,229,255,0.2)',color:'#7dd3fc',whiteSpace:'pre-line',direction:'ltr',textAlign:'center'}}>
-                        {question.solutionSteps}
-                      </div>
-                    )}
-                    <div className="text-xs text-gray-500 mt-2">✅ התשובה הנכונה: <span style={{color:'#00ff88',fontWeight:900,fontSize:'14px'}}>{question.correct}</span></div>
-                    <button onClick={()=>{clearTimeout(feedbackTimer.current);nextQ();}}
-                      className="mt-3 w-full py-2 rounded-xl text-sm font-bold border btn-option"
-                      style={{borderColor:'rgba(255,255,255,0.2)',color:'rgba(255,255,255,0.6)',background:'rgba(255,255,255,0.05)'}}>
-                      המשך ▶
-                    </button>
-                  </div>
-                )}
+                <span className="text-lg font-black" style={{color:'#00e5ff'}}>נכון! 🎯 +{Math.max(10,Math.round(timeLeft*10))}</span>
               </div>
             )}
             {gainedLife && (
@@ -1646,6 +1624,59 @@ export default function App() {
                 <span className="text-lg font-black" style={{color:'#ff0080',textShadow:'0 0 12px rgba(255,0,128,0.5)'}}>+❤️ חיים בונוס! 🎉</span>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── WRONG ANSWER FULL-SCREEN OVERLAY ── */}
+        {(feedback==='wrong'||feedback==='close'||feedback==='timeout') && question && (
+          <div className="fixed inset-0 z-40 flex flex-col items-center justify-start pt-16 px-5 overflow-y-auto pb-8"
+            style={{background: feedback==='close' ? 'rgba(30,15,5,0.94)' : 'rgba(30,5,5,0.94)', backdropFilter:'blur(8px)'}}>
+            {/* Icon */}
+            <div className="w-20 h-20 rounded-full flex items-center justify-center mb-3 pop-in"
+              style={{background:'radial-gradient(circle,rgba(239,68,68,0.3),transparent)',border:'3px solid #ef4444'}}>
+              <span className="text-5xl">{feedback==='close' ? '😬' : feedback==='timeout' ? '⏰' : '❌'}</span>
+            </div>
+            {/* Title */}
+            <div className="text-2xl font-black mb-2" style={{color:'#f87171',textShadow:'0 0 20px rgba(248,113,113,0.5)'}}>
+              {feedback==='close' ? '!כמעט 🤏' : feedback==='timeout' ? '!נגמר הזמן' : '!לא נכון — בפעם הבאה'}
+            </div>
+            {/* Explanation Box */}
+            {EXPLANATIONS[question.topicId] && (
+              <div className="w-full max-w-sm rounded-2xl p-4 mb-3 slide-up"
+                style={{background:'rgba(255,255,255,0.08)',border:'1.5px solid rgba(255,255,255,0.2)'}}>
+                <div className="text-xs font-bold mb-2" style={{color:'#a78bfa',letterSpacing:'0.5px'}}>
+                  📖 {EXPLANATIONS[question.topicId].t}
+                </div>
+                <div className="text-sm leading-relaxed mb-3" style={{color:'#e2e8f0'}}>
+                  {EXPLANATIONS[question.topicId].b}
+                </div>
+                {/* Formula */}
+                <div className="py-2 px-4 rounded-xl text-center text-sm font-bold mb-3"
+                  style={{background:'rgba(167,139,250,0.15)',border:'1px solid rgba(167,139,250,0.3)',color:'#c4b5fd'}}>
+                  {EXPLANATIONS[question.topicId].f}
+                </div>
+                {/* Step-by-step answer */}
+                <div className="py-2 px-4 rounded-xl text-center mb-3"
+                  style={{background:'rgba(0,229,255,0.08)',border:'1px solid rgba(0,229,255,0.2)'}}>
+                  <div className="text-xs text-gray-400 mb-1">פתרון:</div>
+                  <div className="text-base font-bold" dir="ltr" style={{color:'#7dd3fc',fontFamily:"'Orbitron',sans-serif"}}>
+                    {question.e}
+                  </div>
+                </div>
+                {/* Correct answer */}
+                <div className="text-center text-sm" style={{color:'rgba(255,255,255,0.5)'}}>
+                  ✅ התשובה הנכונה: <span style={{color:'#4ade80',fontWeight:900,fontSize:'18px'}}>{question.correct}</span>
+                </div>
+              </div>
+            )}
+            {/* Motivational */}
+            <div className="text-xs mb-3" style={{color:'rgba(255,255,255,0.4)'}}>💪 טעויות עוזרות ללמוד!</div>
+            {/* Continue button */}
+            <button onClick={()=>{clearTimeout(feedbackTimer.current);nextQ();}}
+              className="w-64 py-3 rounded-2xl text-lg font-bold border-2 btn-option"
+              style={{borderColor:'rgba(255,255,255,0.3)',color:'#fff',background:'rgba(255,255,255,0.08)'}}>
+              המשך ▶
+            </button>
           </div>
         )}
 
