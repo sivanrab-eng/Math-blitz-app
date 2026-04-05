@@ -768,7 +768,7 @@ export default function App() {
   };
 
   const startGame = () => {
-    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0};
+    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics]};
     setScore(0); setStreak(0); setMaxStreak(0); setAnswered(0);
     setLives(START_LIVES); setInvitesUsed(0); setAdsUsed(0);
     setRoundNum(1); setRoundCorrect(0); setGainedLife(false);
@@ -778,7 +778,7 @@ export default function App() {
   };
 
   const nextQ = () => {
-    const q = genQuestion(gs.current.diff, selectedTopics);
+    const q = genQuestion(gs.current.diff, gs.current.selectedTopics);
     setQuestion(q);
     setFeedback(null);
     setSelIdx(null);
