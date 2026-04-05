@@ -759,35 +759,33 @@ export default function App() {
 
         {/* ── PLAYING ───────────────────── */}
         {screen === 'playing' && question && (
-          <div className="flex-1 flex flex-col px-4 pt-2 pb-6 max-w-lg mx-auto w-full">
-            {/* Row 1: End button + Lives + Score */}
-            <div className="flex items-center justify-between mb-1">
+          <div className="flex-1 flex flex-col px-4 pt-6 pb-6 max-w-lg mx-auto w-full">
+            {/* Row 1: Lives centered prominently */}
+            <div className="flex items-center justify-center gap-1.5 mb-2">
+              {Array.from({length: MAX_LIVES}, (_,i) => (
+                <div key={i} className={`transition-all duration-300 ${breakingHeart && i === livesDisplay ? 'heart-break' : ''} ${gainedLife && i === livesDisplay-1 ? 'life-gain' : ''}`}
+                  style={{
+                    width: '22px', height: '22px', borderRadius: '50%',
+                    background: i < livesDisplay ? '#ff0080' : 'rgba(255,255,255,0.08)',
+                    boxShadow: i < livesDisplay ? '0 0 10px rgba(255,0,128,0.6), 0 0 20px rgba(255,0,128,0.3)' : 'none',
+                    border: i < livesDisplay ? '2px solid #ff3399' : '2px solid rgba(255,255,255,0.1)',
+                  }}/>
+              ))}
+            </div>
+            {/* Row 2: End + Round + Score */}
+            <div className="flex items-center justify-between mb-2">
               <button onClick={endGame} className="text-gray-500 text-xs px-2 py-1 rounded-lg border border-gray-800 btn-option">
                 סיום ✕
               </button>
-              <div className="flex items-center gap-1">
-                {Array.from({length: MAX_LIVES}, (_,i) => (
-                  <span key={i} className={`transition-all duration-300 ${breakingHeart && i === livesDisplay ? 'heart-break' : ''} ${gainedLife && i === livesDisplay-1 ? 'life-gain' : ''}`}
-                    style={{fontSize: '1.25rem', filter: i < livesDisplay ? 'drop-shadow(0 0 5px #ff0080)' : 'grayscale(1) opacity(0.2)'}}>
-                    {i < livesDisplay ? '❤️' : '🖤'}
-                  </span>
-                ))}
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-black glow-cyan" style={{color:'#00e5ff',fontFamily:"'Orbitron',sans-serif"}}>{score}</div>
-              </div>
-            </div>
-            {/* Row 2: Round progress + Streak */}
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-400">
                 סיבוב {roundNum} • <span style={{color:'#ffaa00',fontFamily:"'Orbitron',sans-serif"}}>{(gs.current.answered % ROUND_SIZE)+1}/{ROUND_SIZE}</span>
               </div>
-              {streak > 0 && (
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-gray-500">רצף</span>
-                  <span className="text-sm font-bold" style={{color:'#ff0080',fontFamily:"'Orbitron',sans-serif"}}>{streak} {combo}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {streak > 0 && (
+                  <span className="text-sm font-bold" style={{color:'#ff0080',fontFamily:"'Orbitron',sans-serif"}}>{streak}{combo}</span>
+                )}
+                <span className="text-xl font-black glow-cyan" style={{color:'#00e5ff',fontFamily:"'Orbitron',sans-serif"}}>{score}</span>
+              </div>
             </div>
 
             {/* Timer Bar */}
