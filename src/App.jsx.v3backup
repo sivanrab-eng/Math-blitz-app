@@ -704,72 +704,10 @@ const GRADES = {
   9: { label:'כיתה ט׳', topics:['linear','explaws','stats','equations','percent'] },
 };
 
-// ── Hints per Topic ──────────────────────────
-const HINTS = {
-  fractions:'💡 הרחיבו או צמצמו כדי להשוות!',
-  orderops:'💡 קודם סוגריים, אח"כ כפל/חילוק, ואז חיבור/חיסור!',
-  area:'💡 שטח מלבן = אורך × רוחב, משולש = (בסיס×גובה)÷2',
-  angles:'💡 סכום זוויות במשולש = 180°, מרובע = 360°',
-  powers:'💡 חזקה = כפל של הבסיס בעצמו כמספר החזקה',
-  ratio:'💡 יחס = חלוקה לפי הפרופורציה, מצאו את הכפולה!',
-  multdiv:'💡 נסו לפרק לעשרות ויחידות!',
-  simplefrac:'💡 מצאו מכנה משותף או צמצמו!',
-  signed:'💡 מינוס כפול מינוס = פלוס!',
-  equations:'💡 העבירו אגפים — מה שעובר הופך סימן!',
-  percent:'💡 אחוז = חלקים מתוך 100. כפלו וחלקו ב-100!',
-  algebra:'💡 כנסו איברים דומים — x עם x, מספרים עם מספרים!',
-  pythagoras:'💡 a² + b² = c² (היתר הוא הצלע הכי ארוכה!)',
-  linear:'💡 y = mx + b → m=שיפוע, b=חיתוך עם y',
-  explaws:'💡 כפל=חיבור חזקות, חילוק=חיסור, חזקת חזקה=כפל!',
-  stats:'💡 ממוצע=סכום÷כמות, חציון=אמצעי, שכיח=הכי נפוץ',
-};
-
-// ── Explanations per Topic ───────────────────
-const EXPLANATIONS = {
-  fractions:{t:'שברים עשרוניים אחוזים',f:'½ = 0.5 = 50%',b:'הכפלה במונה ובמכנה באותו מספר = שבר שקול'},
-  orderops:{t:'סדר פעולות',f:'סוגריים → חזקות → כפל/חילוק → חיבור/חיסור',b:'תמיד פתרו לפי הסדר הנכון!'},
-  area:{t:'שטח והיקף',f:'מלבן: ש=א×ר, ה=2(א+ר)',b:'שטח = כמה מקום בפנים, היקף = הקו מסביב'},
-  angles:{t:'זוויות',f:'משולש=180°, מרובע=360°',b:'סכום הזוויות תמיד קבוע!'},
-  powers:{t:'חזקות',f:'aⁿ = a×a×...×a (n פעמים)',b:'3² = 3×3 = 9'},
-  ratio:{t:'יחס ופרופורציה',f:'a:b → חלק=סה"כ×(a/(a+b))',b:'מצאו את הכפולה המשותפת'},
-  multdiv:{t:'כפל וחילוק',f:'a×b = b×a',b:'חילוק = הפעולה ההפוכה לכפל'},
-  simplefrac:{t:'שברים פשוטים',f:'שבר = חלק מתוך שלם',b:'מונה÷מכנה = הערך'},
-  signed:{t:'מספרים מכוונים',f:'(−)×(−) = (+), (−)×(+) = (−)',b:'חשבו על ציר המספרים!'},
-  equations:{t:'משוואות',f:'ax + b = c → x = (c−b)÷a',b:'מה שעובר אגף — הופך סימן!'},
-  percent:{t:'אחוזים',f:'X% מתוך N = N×X÷100',b:'25% = ¼, 50% = ½, 75% = ¾'},
-  algebra:{t:'אלגברה',f:'3x+2x = 5x',b:'כנסו איברים דומים, פתחו סוגריים'},
-  pythagoras:{t:'פיתגורס',f:'a²+b² = c²',b:'c = היתר (הצלע מול הזווית הישרה)'},
-  linear:{t:'פונקציה קווית',f:'y = mx + b',b:'m=שיפוע (כמה עולה), b=חיתוך'},
-  explaws:{t:'חוקי חזקות',f:'aⁿ×aᵐ=aⁿ⁺ᵐ, aⁿ÷aᵐ=aⁿ⁻ᵐ',b:'(aⁿ)ᵐ = aⁿˣᵐ'},
-  stats:{t:'סטטיסטיקה',f:'ממוצע = סכום ÷ כמות',b:'חציון = הערך האמצעי, שכיח = הכי נפוץ'},
-};
-
-// ── Character Messages ───────────────────────
-const CHAR_OK = ['😎','🤩','💪','🙌','🔥'];
-const CHAR_OK_MSG = ['!נכון','מושלם!','חזק!','בום!','אש!'];
-const CHAR_STREAK = ['🥳','👑','🚀'];
-const CHAR_STREAK_MSG = ['רצח!','אלוף!','טיל!'];
-const CHAR_BAD = ['😅','🤷','💪'];
-const CHAR_BAD_MSG = ['לא נורא!','קורה...','!הבא שלך'];
-const CHAR_CLOSE_MSG = 'כמעט! 🤏';
-
-// ── Achievement Definitions ──────────────────
-const ACH_DEFS = [
-  {id:'first',check:(s)=>s.totalCorrect>=1,icon:'🎯',text:'תשובה ראשונה!'},
-  {id:'s5',check:(s)=>s.streak>=5,icon:'🔥',text:'רצף 5!'},
-  {id:'s10',check:(s)=>s.streak>=10,icon:'👑',text:'רצף 10!'},
-  {id:'p500',check:(s)=>s.score>=500,icon:'💰',text:'500 נקודות!'},
-  {id:'p1k',check:(s)=>s.score>=1000,icon:'🏆',text:'1000 נקודות!'},
-  {id:'p2k',check:(s)=>s.score>=2000,icon:'💎',text:'2000 נקודות!'},
-  {id:'perfect',check:(s)=>s.answered>=10&&s.totalCorrect===s.answered,icon:'⭐',text:'סיבוב מושלם!'},
-];
-
 const genQuestion = (diff, selectedTopicIds) => {
   const available = ALL_TOPICS.filter(t => selectedTopicIds.includes(t.id));
-  const topic = available.length > 0 ? pick(available) : topicFractions;
-  const q = topic.generate(diff);
-  q.topicId = topic.id;
-  return q;
+  if(available.length === 0) return topicFractions.generate(diff);
+  return pick(available).generate(diff);
 };
 
 // ── LocalStorage helpers ─────────────────────
@@ -808,14 +746,6 @@ export default function App() {
   const [adCountdown,setAdCountdown] = useState(0);
   const [adsUsed,setAdsUsed] = useState(0);
   const [showInterstitial,setShowInterstitial] = useState(false);
-  const [charEmoji,setCharEmoji] = useState('🤓');
-  const [charMsg,setCharMsg] = useState('');
-  const [charAnim,setCharAnim] = useState('');
-  const [hintVisible,setHintVisible] = useState(false);
-  const [achToast,setAchToast] = useState(null);
-  const [unlockedAch,setUnlockedAch] = useState({});
-  const [playerName,setPlayerName] = useState(()=>{ try{return localStorage.getItem('math-blitz-name')||'';}catch{return '';} });
-  const [totalCorrect,setTotalCorrect] = useState(0);
 
   const gs = useRef({score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0});
   const endTimeRef = useRef(0);
@@ -840,7 +770,7 @@ export default function App() {
   const startGame = () => {
     gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics]};
     setScore(0); setStreak(0); setMaxStreak(0); setAnswered(0);
-    setLives(START_LIVES); setInvitesUsed(0); setAdsUsed(0); setTotalCorrect(0);
+    setLives(START_LIVES); setInvitesUsed(0); setAdsUsed(0);
     setRoundNum(1); setRoundCorrect(0); setGainedLife(false);
     setIsHigh(false); setFeedback(null); setSelIdx(null); setCombo('');
     setScreen('playing');
@@ -852,8 +782,6 @@ export default function App() {
     setQuestion(q);
     setFeedback(null);
     setSelIdx(null);
-    setHintVisible(false);
-    charReact('think', 0);
     setTimeLeft(gs.current.dur);
     endTimeRef.current = Date.now() + gs.current.dur * 1000;
     lastTickRef.current = Math.ceil(gs.current.dur);
@@ -893,8 +821,6 @@ export default function App() {
       else if(g.diff==='medium') g.diff='easy';
     }
     setStreak(0); setAnswered(g.answered); setCombo('');
-    charReact('timeout', 0);
-    setHintVisible(false);
     const dead = loseLife();
     if(dead) {
       feedbackTimer.current = setTimeout(() => {
@@ -932,7 +858,6 @@ export default function App() {
       g.score += Math.max(10, Math.round(timeLeft * 10));
       g.streak++; g.wrongStreak = 0;
       g.roundCorrect++;
-      g.totalCorrect = (g.totalCorrect||0) + 1;
       if(g.streak > g.maxStreak) g.maxStreak = g.streak;
       g.dur = Math.max(g.dur * 0.95, 3);
       if(g.streak >= 5 && g.diff==='easy') { g.diff='medium'; g.streak=0; }
@@ -947,22 +872,15 @@ export default function App() {
         setTimeout(()=>setGainedLife(false), 1200);
       }
 
-      charReact('correct', g.streak);
-      setHintVisible(false);
-
       const combos = ['\u{1F525}','\u26A1','\u{1F4A5}','\u{1F680}','\u2728','\u{1F31F}'];
       setCombo(combos[Math.min(g.streak, combos.length-1)] || '\u{1F525}');
-      setScore(g.score); setStreak(g.streak); setMaxStreak(g.maxStreak); setAnswered(g.answered); setRoundCorrect(g.roundCorrect); setTotalCorrect(g.totalCorrect);
-      checkAchievements({score:g.score,streak:g.streak,totalCorrect:g.totalCorrect,answered:g.answered});
+      setScore(g.score); setStreak(g.streak); setMaxStreak(g.maxStreak); setAnswered(g.answered); setRoundCorrect(g.roundCorrect);
       if(!checkRoundEnd(800)) {
         feedbackTimer.current = setTimeout(nextQ, 800);
       }
     } else {
       playWrong();
-      const nearMiss = isNearMiss(question, idx);
-      setFeedback(nearMiss ? 'close' : 'wrong');
-      charReact(nearMiss ? 'close' : 'wrong', 0);
-      setHintVisible(false);
+      setFeedback('wrong');
       setShaking(true);
       setTimeout(()=>setShaking(false),400);
       g.streak = 0; g.wrongStreak++;
@@ -1080,10 +998,8 @@ export default function App() {
 
   const shareWhatsApp = () => {
     const g = gs.current;
-    const name = playerName || 'שחקן';
-    const acc = g.answered > 0 ? Math.round((g.totalCorrect||0)/g.answered*100) : 0;
-    const stars = acc >= 90 ? '⭐⭐⭐' : acc >= 70 ? '⭐⭐' : '⭐';
-    const txt = '\u26CF\uFE0F \u05D0\u05EA\u05D2\u05E8 \u05DE\u05EA\u05DE\u05D8\u05D9 \u26CF\uFE0F\n\n'+name+' \u05D4\u05E9\u05D9\u05D2 '+g.score+' \u05E0\u05E7\u05D5\u05D3\u05D5\u05EA! '+stars+'\n\u05E8\u05E6\u05E3: '+g.maxStreak+' \u{1F525} | \u05D3\u05D9\u05D5\u05E7: '+acc+'% \u{1F3AF}\n\n\u05EA\u05E0\u05E1\u05D4 \u05DC\u05E0\u05E6\u05D7 \u05D0\u05D5\u05EA\u05D9? \u{1F60F}\n\nhttps://sivanrab-eng.github.io/Math-blitz-app/';
+    const rounds = Math.ceil(g.answered/ROUND_SIZE);
+    const txt = '\u{1F9E0}\u26A1 \u05DE\u05EA\u05DE\u05D8\u05D9\u05E7\u05D4 \u05D1\u05DC\u05D9\u05D9\u05D6 \u26A1\u{1F9E0}\n\n\u05D4\u05E9\u05D2\u05EA\u05D9 '+g.score+' \u05E0\u05E7\u05D5\u05D3\u05D5\u05EA! \u{1F525}\n\u05E8\u05E6\u05E3 \u05D4\u05DB\u05D9 \u05D0\u05E8\u05D5\u05DA: '+g.maxStreak+' \u2728\n\u05E2\u05E0\u05D9\u05EA\u05D9 \u05E2\u05DC '+g.answered+' \u05E9\u05D0\u05DC\u05D5\u05EA \u05D1-'+rounds+' \u05E1\u05D9\u05D1\u05D5\u05D1\u05D9\u05DD \u{1F4CA}\n\n\u05D0\u05EA/\u05D4 \u05D9\u05DB\u05D5\u05DC/\u05D4 \u05DC\u05E0\u05E6\u05D7 \u05D0\u05D5\u05EA\u05D9? \u{1F60F}\n\u05E0\u05E1\u05D4 \u05E2\u05DB\u05E9\u05D9\u05D5:\nhttps://sivanrab-eng.github.io/Math-blitz-app/';
     window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
   };
 
@@ -1091,59 +1007,6 @@ export default function App() {
     setGrade(g);
     const gradeTopics = GRADES[g].topics;
     setSelectedTopics([...gradeTopics]);
-  };
-
-  // ── Character Helpers ────────────────────
-  const charTimerRef = useRef(null);
-  const charReact = (type, streak) => {
-    clearTimeout(charTimerRef.current);
-    let emoji, msg;
-    if(type==='correct') {
-      if(streak>=5) { const i=randInt(0,CHAR_STREAK.length-1); emoji=CHAR_STREAK[i]; msg=CHAR_STREAK_MSG[i]; }
-      else { const i=randInt(0,CHAR_OK.length-1); emoji=CHAR_OK[i]; msg=CHAR_OK_MSG[i]; }
-    } else if(type==='close') {
-      emoji='😬'; msg=CHAR_CLOSE_MSG;
-    } else if(type==='wrong') {
-      const i=randInt(0,CHAR_BAD.length-1); emoji=CHAR_BAD[i]; msg=CHAR_BAD_MSG[i];
-    } else if(type==='timeout') {
-      emoji='😱'; msg='!נגמר הזמן';
-    } else { emoji='🤔'; msg=''; }
-    setCharEmoji(emoji);
-    setCharMsg(msg);
-    setCharAnim(type==='correct'?'char-bounce':type==='wrong'||type==='close'||type==='timeout'?'char-sad':'char-think');
-    if(msg) { charTimerRef.current = setTimeout(()=>setCharMsg(''), 2200); }
-  };
-
-  // ── Near Miss Detection ──────────────────
-  const isNearMiss = (q, chosenIdx) => {
-    const correctVal = parseFloat(String(q.correct).replace(/[^\d.\-]/g,''));
-    const chosenVal = parseFloat(String(q.options[chosenIdx]).replace(/[^\d.\-]/g,''));
-    if(isNaN(correctVal)||isNaN(chosenVal)) return false;
-    return Math.abs(correctVal-chosenVal) <= Math.max(1, correctVal*0.15);
-  };
-
-  // ── Achievement Checker ──────────────────
-  const checkAchievements = (stats) => {
-    ACH_DEFS.forEach(a => {
-      if(!unlockedAch[a.id] && a.check(stats)) {
-        setUnlockedAch(prev => ({...prev, [a.id]:true}));
-        setAchToast({icon:a.icon, text:a.text});
-        setTimeout(()=>setAchToast(null), 3000);
-      }
-    });
-  };
-
-  // ── Hint Toggle ──────────────────────────
-  const toggleHint = () => {
-    if(feedback) return;
-    setHintVisible(prev => !prev);
-    if(!hintVisible) setTimeout(()=>setHintVisible(false), 4000);
-  };
-
-  // ── Save Name ────────────────────────────
-  const saveName = (name) => {
-    setPlayerName(name);
-    try { localStorage.setItem('math-blitz-name', name); } catch{}
   };
 
   const toggleTopic = (id) => {
@@ -1195,18 +1058,6 @@ export default function App() {
         .dead-pulse{animation:deadPulse 1.2s ease infinite}
         .topic-chip{transition:all 0.2s ease;-webkit-tap-highlight-color:transparent}
         .topic-chip:active{transform:scale(0.95)}
-        @keyframes charBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-        @keyframes charSad{0%{transform:rotate(0)}30%{transform:rotate(-8deg)}60%{transform:rotate(8deg)}100%{transform:rotate(0)}}
-        @keyframes charThinkAnim{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(3deg)}}
-        .char-bounce{animation:charBounce 0.4s ease}
-        .char-sad{animation:charSad 0.5s ease}
-        .char-think{animation:charThinkAnim 2s ease infinite}
-        @keyframes achSlide{0%{transform:translateX(-50%) translateY(-80px);opacity:0}15%{transform:translateX(-50%) translateY(0);opacity:1}85%{transform:translateX(-50%) translateY(0);opacity:1}100%{transform:translateX(-50%) translateY(-80px);opacity:0}}
-        .ach-toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:500;display:flex;align-items:center;gap:8px;padding:10px 20px;border-radius:20px;background:linear-gradient(135deg,rgba(124,58,237,0.9),rgba(76,29,149,0.9));border:2px solid #a78bfa;color:#fff;font-weight:800;font-size:14px;box-shadow:0 8px 24px rgba(124,58,237,0.5);animation:achSlide 3s ease forwards;white-space:nowrap}
-        .hint-bubble{position:absolute;bottom:100%;right:0;left:0;margin-bottom:8px;padding:10px 14px;border-radius:14px;background:rgba(26,10,62,0.95);border:2px solid #fbbf24;color:#fef3c7;font-size:13px;font-weight:700;line-height:1.5;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);z-index:20}
-        .explain-box{margin-top:8px;padding:10px 14px;border-radius:14px;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.15);text-align:right}
-        .explain-title{font-size:11px;color:#a78bfa;font-weight:800;margin-bottom:4px}
-        .explain-formula{margin-top:6px;padding:6px 10px;border-radius:10px;background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.3);font-size:12px;font-weight:800;color:#c4b5fd;text-align:center}
       `}</style>
 
       <div className="grid-bg fixed inset-0 pointer-events-none"/>
@@ -1225,15 +1076,6 @@ export default function App() {
               <p className="text-lg font-bold glow-pink" style={{color:'#ff0080'}}>מתמטיקה בלייז</p>
             </div>
             <div className="float-anim" style={{fontSize:'3rem',lineHeight:1}}>🧠</div>
-
-            {/* Name Input */}
-            <div className="w-full max-w-xs slide-up" style={{animationDelay:'0.02s'}}>
-              <input type="text" value={playerName} onChange={(e)=>saveName(e.target.value)}
-                placeholder="מה השם שלך?"
-                className="w-full py-3 px-4 rounded-xl text-center text-lg font-bold outline-none"
-                style={{background:'rgba(255,255,255,0.08)',border:'2px solid rgba(255,255,255,0.15)',color:'#fff',fontFamily:"'Heebo',sans-serif"}}
-                maxLength={15} dir="rtl"/>
-            </div>
 
             {/* Grade Selection */}
             <div className="w-full max-w-xs slide-up" style={{animationDelay:'0.03s'}}>
@@ -1352,16 +1194,8 @@ export default function App() {
               </span>
             </div>
 
-            {/* Question Card + Character */}
-            <div className="mx-auto mb-4 pop-in w-full relative">
-              {/* Character */}
-              <div className="absolute -top-2 -left-2 z-20 flex flex-col items-center" style={{width:48}}>
-                <div className={'text-3xl transition-all duration-300 '+charAnim}>{charEmoji}</div>
-                {charMsg && <div className="mt-1 px-2 py-1 rounded-lg text-xs font-bold whitespace-nowrap pop-in"
-                  style={{background:'rgba(26,10,62,0.95)',border:'1.5px solid #a78bfa',color:'#e9d5ff',boxShadow:'0 4px 12px rgba(0,0,0,0.4)'}}>
-                  {charMsg}
-                </div>}
-              </div>
+            {/* Question Card */}
+            <div className="mx-auto mb-6 pop-in w-full">
               <div className="rounded-3xl px-8 py-6 text-center border-2"
                 style={{borderColor:'rgba(0,229,255,0.2)',background:'rgba(8,8,35,0.85)',boxShadow:'0 0 40px rgba(0,229,255,0.1)'}}>
                 {question.qLabel && <div className="text-xs text-gray-500 mb-2">{question.qLabel}</div>}
@@ -1369,19 +1203,8 @@ export default function App() {
                   className="font-black glow-cyan tracking-wide" dir="ltr">
                   {question.question}
                 </div>
-                {/* Hint Bubble */}
-                {hintVisible && question.topicId && HINTS[question.topicId] && (
-                  <div className="hint-bubble pop-in">{HINTS[question.topicId]}</div>
-                )}
               </div>
               {combo && <div className="text-center text-2xl mt-2 pop-in">{combo}</div>}
-              {/* Hint Button */}
-              {!feedback && (
-                <button onClick={toggleHint} className="absolute -bottom-2 -left-2 w-10 h-10 rounded-full border-2 flex items-center justify-center btn-option text-lg"
-                  style={{borderColor:'#fbbf24',background:'rgba(251,191,36,0.15)',color:'#fbbf24',boxShadow:'0 2px 8px rgba(251,191,36,0.3)',zIndex:10}}>
-                  💡
-                </button>
-              )}
             </div>
 
             {/* Options Grid */}
@@ -1391,14 +1214,14 @@ export default function App() {
                 let bgC = 'rgba(255,255,255,0.03)';
                 let extraClass = '';
                 if(feedback && i === question.correctIdx) { borderC='#00e5ff'; bgC='rgba(0,229,255,0.12)'; extraClass='correct-anim'; }
-                else if((feedback === 'wrong'||feedback==='close') && i === selIdx) { borderC='#ff0080'; bgC='rgba(255,0,128,0.12)'; extraClass='wrong-anim'; }
+                else if(feedback === 'wrong' && i === selIdx) { borderC='#ff0080'; bgC='rgba(255,0,128,0.12)'; extraClass='wrong-anim'; }
                 else if(feedback === 'timeout' && i === question.correctIdx) { borderC='#00e5ff'; bgC='rgba(0,229,255,0.08)'; }
 
                 return (
                   <button key={i} onClick={()=>handleAnswer(i)} disabled={!!feedback}
                     className={'rounded-2xl py-5 text-center border-2 btn-option slide-up '+extraClass}
                     style={{borderColor:borderC,background:bgC,animationDelay:(i*0.06)+'s',
-                      color: feedback && i===question.correctIdx ? '#00e5ff' : (feedback==='wrong'||feedback==='close')&&i===selIdx ? '#ff0080' : '#fff'}}>
+                      color: feedback && i===question.correctIdx ? '#00e5ff' : feedback==='wrong'&&i===selIdx ? '#ff0080' : '#fff'}}>
                     <span dir="ltr" className="text-xl font-bold" style={{fontFamily:"'Orbitron',sans-serif"}}>{opt}</span>
                   </button>
                 );
@@ -1406,20 +1229,10 @@ export default function App() {
             </div>
 
             {feedback && (
-              <div className="text-center mt-3 pop-in">
+              <div className="text-center mt-4 pop-in">
                 {feedback==='correct' && <span className="text-lg font-black" style={{color:'#00e5ff'}}>נכון! 🎯 +{Math.max(10,Math.round(timeLeft*10))}</span>}
-                {feedback==='close' && <span className="text-lg font-black" style={{color:'#ff0080'}}>כמעט! 🤏 ❤️‍🩹</span>}
                 {feedback==='wrong' && <span className="text-lg font-black" style={{color:'#ff0080'}}>לא נכון 😬 ❤️‍🩹</span>}
                 {feedback==='timeout' && <span className="text-lg font-black" style={{color:'#ff0080'}}>נגמר הזמן! ⏰ ❤️‍🩹</span>}
-                {/* Explanation when wrong */}
-                {(feedback==='wrong'||feedback==='close'||feedback==='timeout') && question.topicId && EXPLANATIONS[question.topicId] && (
-                  <div className="explain-box mt-3 text-right">
-                    <div className="explain-title">📖 {EXPLANATIONS[question.topicId].t}</div>
-                    <div className="text-xs text-gray-300 leading-relaxed">{EXPLANATIONS[question.topicId].b}</div>
-                    <div className="explain-formula">{EXPLANATIONS[question.topicId].f}</div>
-                    <div className="text-xs text-gray-500 mt-2">✅ התשובה: <span style={{color:'#00e5ff',fontWeight:900}}>{question.correct}</span></div>
-                  </div>
-                )}
               </div>
             )}
             {gainedLife && (
@@ -1570,58 +1383,53 @@ export default function App() {
         )}
 
         {/* ── GAME OVER ─────────────────── */}
-        {screen === 'gameover' && (() => {
-          const g = gs.current;
-          const acc = g.answered > 0 ? Math.round((g.totalCorrect||0)/g.answered*100) : 0;
-          const stars = acc >= 90 ? '⭐⭐⭐' : acc >= 70 ? '⭐⭐' : acc >= 40 ? '⭐' : '';
-          const grade_text = acc >= 90 ? '!מושלם 👑' : acc >= 70 ? '!כל הכבוד 💪' : acc >= 40 ? 'טוב, אפשר לשפר!' : '!אל תוותר 💪';
-          return (
-          <div className="flex-1 flex flex-col items-center justify-center px-6 gap-4">
+        {screen === 'gameover' && (
+          <div className="flex-1 flex flex-col items-center justify-center px-6 gap-5">
             {isHigh && (
-              <div className="pop-in text-center mb-1">
+              <div className="pop-in text-center mb-2">
                 <div className="text-3xl mb-1">🏆</div>
                 <p className="text-xl font-black glow-pink" style={{color:'#ff0080'}}>שיא חדש!</p>
               </div>
             )}
-            {/* Star Rating */}
-            {stars && <div className="text-3xl tracking-widest pop-in">{stars}</div>}
-            <div className="text-sm font-bold pop-in" style={{color: acc>=90?'#00ff88':acc>=70?'#ffaa00':'#ff0080'}}>{grade_text}</div>
             <div className="pop-in text-center">
-              <div style={{fontFamily:"'Orbitron',sans-serif"}} className="text-5xl font-black glow-cyan">{g.score}</div>
-              <p className="text-xs text-gray-400 mt-1">נקודות</p>
+              <p className="text-sm text-gray-400 mb-1">המשחק נגמר</p>
+              <div style={{fontFamily:"'Orbitron',sans-serif"}} className="text-6xl font-black glow-cyan">{gs.current.score}</div>
+              <p className="text-sm text-gray-400 mt-1">נקודות</p>
             </div>
-            <div className="flex gap-5 slide-up" style={{animationDelay:'0.1s'}}>
+            <div className="flex gap-6 slide-up" style={{animationDelay:'0.1s'}}>
               <div className="text-center">
-                <div className="text-xl font-bold" style={{color:'#ff0080',fontFamily:"'Orbitron',sans-serif"}}>{g.maxStreak}</div>
-                <div className="text-xs text-gray-500">רצף 🔥</div>
+                <div className="text-2xl font-bold" style={{color:'#ff0080',fontFamily:"'Orbitron',sans-serif"}}>{gs.current.maxStreak}</div>
+                <div className="text-xs text-gray-500">רצף מקסימלי</div>
               </div>
               <div className="text-center">
-                <div className="text-xl font-bold" style={{color:'#00e5ff',fontFamily:"'Orbitron',sans-serif"}}>{acc}%</div>
-                <div className="text-xs text-gray-500">דיוק 🎯</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xl font-bold" style={{color:'#ffaa00',fontFamily:"'Orbitron',sans-serif"}}>{g.answered}</div>
+                <div className="text-2xl font-bold" style={{color:'#00e5ff',fontFamily:"'Orbitron',sans-serif"}}>{gs.current.answered}</div>
                 <div className="text-xs text-gray-500">שאלות</div>
               </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold" style={{color:'#ffaa00',fontFamily:"'Orbitron',sans-serif"}}>{Math.ceil(gs.current.answered/ROUND_SIZE)}</div>
+                <div className="text-xs text-gray-500">סיבובים</div>
+              </div>
             </div>
-            {/* Duel Challenge */}
             <button onClick={shareWhatsApp}
               className="w-64 py-3 rounded-2xl text-lg font-bold border-2 btn-option slide-up"
               style={{borderColor:'#25D366',color:'#25D366',background:'rgba(37,211,102,0.08)',animationDelay:'0.15s',boxShadow:'0 0 15px rgba(37,211,102,0.2)'}}>
-              ⚔️ אתגר חבר בוואטסאפ
+              שתף בוואטסאפ 📱
             </button>
             <button onClick={startGame}
               className="w-64 py-4 rounded-2xl text-xl font-black border-2 glow-box-cyan btn-option slide-up"
               style={{borderColor:'#00e5ff',color:'#00e5ff',background:'rgba(0,229,255,0.08)',animationDelay:'0.25s'}}>
               שחק שוב ⚡
             </button>
-            <div className="flex gap-3 slide-up" style={{animationDelay:'0.3s'}}>
-              <button onClick={()=>setScreen('leaderboard')} className="text-sm text-gray-500 underline btn-option">שיאים 🏆</button>
-              <button onClick={()=>setScreen('menu')} className="text-sm text-gray-600 btn-option">תפריט</button>
-            </div>
+            <button onClick={()=>setScreen('leaderboard')}
+              className="text-sm text-gray-500 underline slide-up btn-option" style={{animationDelay:'0.3s'}}>
+              טבלת שיאים 🏆
+            </button>
+            <button onClick={()=>setScreen('menu')}
+              className="text-xs text-gray-600 slide-up btn-option" style={{animationDelay:'0.35s'}}>
+              תפריט ראשי
+            </button>
           </div>
-          );
-        })()}
+        )}
 
         {/* ── LEADERBOARD ───────────────── */}
         {screen === 'leaderboard' && (
@@ -1682,14 +1490,6 @@ export default function App() {
               <div className="text-2xl font-black" style={{color:'#ffaa00',fontFamily:"'Orbitron',sans-serif"}}>{adCountdown}</div>
               <div className="text-xs text-gray-500 mt-1">ממשיכים עוד רגע...</div>
             </div>
-          </div>
-        )}
-
-        {/* ── ACHIEVEMENT TOAST ────────── */}
-        {achToast && (
-          <div className="ach-toast">
-            <span style={{fontSize:24}}>{achToast.icon}</span>
-            <span>{achToast.text}</span>
           </div>
         )}
       </div>
