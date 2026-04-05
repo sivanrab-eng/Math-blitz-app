@@ -13,6 +13,8 @@ const REVIVE_COST = 100;
 const REVIVE_INVITE_LIMIT = 2;
 const ROUND_SIZE = 10;
 const LIFE_EARN_STREAK = 7;
+const AD_WATCH_SECONDS = 5; // simulated ad duration until real ads connected
+const REVIVE_AD_LIMIT = 1;  // max free revives via ad per game
 
 // ── Sound Engine (Web Audio API) ─────────────
 let _actx = null;
@@ -392,8 +394,315 @@ const topicRatio = {
   }
 };
 
+// ── Topic 7: Multiplication & Division (Grade 4) ─
+const topicMultDiv = {
+  id: 'multdiv', name: 'כפל וחילוק', icon: '✖️', color: '#00ccff',
+  generate(diff) {
+    let question, answer, label='מה התוצאה?';
+    if(diff==='easy') {
+      const a=randInt(2,9), b=randInt(2,9);
+      question=a+' \u00D7 '+b; answer=a*b;
+    } else if(diff==='medium') {
+      if(randInt(0,1)) { const a=randInt(2,9),b=randInt(2,9); question=(a*b)+' \u00F7 '+a; answer=b; }
+      else { const a=randInt(11,19),b=randInt(2,5); question=a+' \u00D7 '+b; answer=a*b; }
+    } else {
+      const a=randInt(12,25),b=randInt(3,9);
+      if(randInt(0,1)) { question=a+' \u00D7 '+b; answer=a*b; }
+      else { question=(a*b)+' \u00F7 '+b; answer=a; }
+    }
+    const ansStr=String(answer);
+    const wrongs=new Set();
+    [answer+randInt(1,5),answer-randInt(1,5),answer+randInt(2,10),answer*2].forEach(w=>{if(w!==answer&&w>0)wrongs.add(String(w));});
+    while(wrongs.size<3) wrongs.add(String(answer+randInt(1,15)));
+    const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+    return{question,qLabel:'✖️ כפל וחילוק',aLabel:label,options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+  }
+};
+
+// ── Topic 8: Simple Fractions (Grade 4) ──────
+const topicSimpleFrac = {
+  id: 'simplefrac', name: 'שברים פשוטים', icon: '🍕', color: '#ff8844',
+  generate(diff) {
+    let question, answer, label='מה התשובה?';
+    if(diff==='easy') {
+      const d=pick([2,3,4,5]),n=randInt(1,d-1),whole=d*randInt(2,6);
+      question=n+'/'+d+' מתוך '+whole; answer=(whole/d)*n; label='כמה זה?';
+    } else if(diff==='medium') {
+      const fracs=[[1,2],[1,3],[2,3],[1,4],[3,4],[1,5],[2,5]];
+      const [n1,d1]=pick(fracs),[n2,d2]=pick(fracs);
+      const v1=n1/d1,v2=n2/d2;
+      question=n1+'/'+d1+' ⬜ '+n2+'/'+d2+'\nמה הסימן?';
+      const ansStr=v1>v2?'>':v1<v2?'<':'=';
+      const opts=shuffle(['>','<','=','≠']);
+      return{question,qLabel:'🍕 השוואת שברים',aLabel:'בחר סימן',options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+    } else {
+      const d=pick([4,5,6,8,10]),n=randInt(1,d-1);
+      const g2=gcd(n,d);
+      const ansStr=(n/g2)+'/'+(d/g2);
+      question='צמצם: '+n+'/'+d; label='מה השבר המצומצם?';
+      const wrongs=new Set();
+      [[n+1,d],[n,d-1],[n-1,d],[n,d+1]].forEach(([wn,wd])=>{
+        if(wn>0&&wd>0&&wn<wd) wrongs.add(wn+'/'+wd);
+      });
+      while(wrongs.size<3) wrongs.add(randInt(1,5)+'/'+randInt(2,8));
+      const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+      return{question,qLabel:'🍕 שברים',aLabel:label,options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+    }
+    const ansStr=String(answer);
+    const wrongs=new Set();
+    [answer+randInt(1,5),answer-randInt(1,3),answer*2,Math.floor(answer/2)].forEach(w=>{if(w!==answer&&w>0)wrongs.add(String(w));});
+    while(wrongs.size<3) wrongs.add(String(answer+randInt(1,10)));
+    const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+    return{question,qLabel:'🍕 שברים',aLabel:label,options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+  }
+};
+
+// ── Topic 9: Signed Numbers (Grade 7) ────────
+const topicSigned = {
+  id: 'signed', name: 'מספרים מכוונים', icon: '🔄', color: '#ff6644',
+  generate(diff) {
+    let question, answer;
+    if(diff==='easy') {
+      const a=randInt(-10,10),b=randInt(-10,10);
+      question='('+a+') + ('+b+')'; answer=a+b;
+    } else if(diff==='medium') {
+      const type=randInt(0,2);
+      if(type===0){const a=randInt(-15,15),b=randInt(-15,15);question='('+a+') \u2212 ('+b+')';answer=a-b;}
+      else if(type===1){const a=randInt(-8,8),b=randInt(-8,8);question='('+a+') \u00D7 ('+b+')';answer=a*b;}
+      else{const a=randInt(2,9),b=pick([-1,1])*randInt(2,9);question='('+a*b+') \u00F7 ('+b+')';answer=a;}
+    } else {
+      const a=randInt(-10,10),b=randInt(-10,10),c=randInt(-10,10);
+      question='('+a+') + ('+b+') \u2212 ('+c+')'; answer=a+b-c;
+    }
+    const ansStr=String(answer);
+    const wrongs=new Set();
+    [answer+randInt(1,5),answer-randInt(1,5),-answer,answer+randInt(2,8)].forEach(w=>{if(String(w)!==ansStr)wrongs.add(String(w));});
+    while(wrongs.size<3) wrongs.add(String(answer+randInt(-10,10)));
+    const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+    return{question,qLabel:'🔄 מכוונים',aLabel:'מה התוצאה?',options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+  }
+};
+
+// ── Topic 10: Equations (Grade 7-8) ──────────
+const topicEquations = {
+  id: 'equations', name: 'משוואות', icon: '🔍', color: '#44aaff',
+  generate(diff) {
+    let question, answer;
+    if(diff==='easy') {
+      const x=randInt(1,10),a=randInt(2,5),b=randInt(1,15);
+      question=a+'x + '+b+' = '+(a*x+b); answer=x;
+    } else if(diff==='medium') {
+      const x=randInt(1,8),a=randInt(2,6),b=randInt(1,10),c=randInt(1,20);
+      const right=a*x-b;
+      if(right>0){question=a+'x \u2212 '+b+' = '+right; answer=x;}
+      else{question=a+'x + '+b+' = '+(a*x+b); answer=x;}
+    } else {
+      const x=randInt(1,6),a=randInt(2,5),b=randInt(1,8),c=randInt(1,4),d=randInt(1,10);
+      const right=a*x+b-c*x;
+      question=a+'x + '+b+' = '+c+'x + '+(right+d*0); 
+      // Simpler: ax + b = c => x = (c-b)/a
+      const x2=randInt(2,8),a2=randInt(2,5),b2=randInt(1,10);
+      question=a2+'x + '+b2+' = '+(a2*x2+b2); answer=x2;
+    }
+    const ansStr=String(answer);
+    const wrongs=new Set();
+    [answer+1,answer-1,answer+2,answer*2,answer+3].forEach(w=>{if(w!==answer&&w>0)wrongs.add(String(w));});
+    while(wrongs.size<3) wrongs.add(String(randInt(1,15)));
+    const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+    return{question,qLabel:'🔍 משוואות',aLabel:'x = ?',options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+  }
+};
+
+// ── Topic 11: Percentages (Grade 7) ──────────
+const topicPercent = {
+  id: 'percent', name: 'אחוזים', icon: '💹', color: '#22cc88',
+  generate(diff) {
+    let question, answer, label='מה התשובה?';
+    if(diff==='easy') {
+      const p=pick([10,20,25,50]),n=pick([40,60,80,100,120,200]);
+      question=p+'% מתוך '+n; answer=n*p/100;
+    } else if(diff==='medium') {
+      if(randInt(0,1)){
+        const p=pick([15,30,35,40,60,75]),n=pick([100,200,300,400,500]);
+        question=p+'% מתוך '+n; answer=n*p/100;
+      } else {
+        const orig=pick([100,150,200,250,300]),disc=pick([10,20,25,30]);
+        question='מחיר: '+orig+'₪\nהנחה: '+disc+'%\nמה המחיר החדש?'; answer=orig-orig*disc/100; label='כמה לשלם?';
+      }
+    } else {
+      const cost=pick([80,100,120,150]),profit=pick([10,20,25,50]);
+      question='מחיר קנייה: '+cost+'₪\nרווח: '+profit+'%\nמחיר מכירה?'; answer=cost+cost*profit/100; label='כמה למכור?';
+    }
+    const ansStr=String(answer);
+    const wrongs=new Set();
+    [answer+randInt(5,20),answer-randInt(5,15),answer+randInt(10,30),answer/2].forEach(w=>{
+      if(w!==answer&&w>0)wrongs.add(String(Math.round(w)));
+    });
+    while(wrongs.size<3) wrongs.add(String(answer+randInt(5,25)));
+    const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+    return{question,qLabel:'💹 אחוזים',aLabel:label,options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+  }
+};
+
+// ── Topic 12: Algebra (Grade 8) ──────────────
+const topicAlgebra = {
+  id: 'algebra', name: 'ביטויים אלגבריים', icon: '🧮', color: '#8855ff',
+  generate(diff) {
+    let question, answer, label='מה התוצאה?';
+    if(diff==='easy') {
+      const a=randInt(2,6),b=randInt(1,5);
+      question='פשט: '+a+'x + '+b+'x'; answer=(a+b)+'x'; label='מה הביטוי?';
+    } else if(diff==='medium') {
+      const a=randInt(2,5),b=randInt(1,8),x=randInt(2,6);
+      question='חשב '+a+'x + '+b+'\nכאשר x='+x; answer=a*x+b; label='מה הערך?';
+    } else {
+      const a=randInt(2,4),b=randInt(1,6),x=randInt(2,5);
+      question='חשב '+a+'(x + '+b+')\nכאשר x='+x; answer=a*(x+b); label='מה הערך?';
+    }
+    const ansStr=String(answer);
+    if(typeof answer==='string'){
+      const wrongs=new Set();
+      const num=parseInt(answer);
+      [(num+1)+'x',(num-1)+'x',(num+3)+'x',(num*2)+'x'].forEach(w=>{if(w!==answer)wrongs.add(w);});
+      while(wrongs.size<3) wrongs.add(randInt(2,20)+'x');
+      const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+      return{question,qLabel:'🧮 אלגברה',aLabel:label,options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+    }
+    const wrongs=new Set();
+    [answer+randInt(1,5),answer-randInt(1,5),answer*2,answer+randInt(3,10)].forEach(w=>{if(w!==answer&&w>0)wrongs.add(String(w));});
+    while(wrongs.size<3) wrongs.add(String(answer+randInt(1,15)));
+    const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+    return{question,qLabel:'🧮 אלגברה',aLabel:label,options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+  }
+};
+
+// ── Topic 13: Pythagoras (Grade 8) ───────────
+const topicPythagoras = {
+  id: 'pythagoras', name: 'פיתגורס', icon: '📐', color: '#ff4488',
+  generate(diff) {
+    const triples=[[3,4,5],[5,12,13],[6,8,10],[8,15,17],[9,12,15],[7,24,25],[20,21,29]];
+    let question, answer, label;
+    if(diff==='easy') {
+      const [a,b,c]=pick(triples.slice(0,3));
+      question='במשולש ישר זווית:\nניצבים: '+a+', '+b+'\nמה היתר?'; answer=c; label='אורך היתר?';
+    } else if(diff==='medium') {
+      const [a,b,c]=pick(triples.slice(0,4));
+      question='במשולש ישר זווית:\nניצב: '+a+' יתר: '+c+'\nמה הניצב השני?'; answer=b; label='אורך הניצב?';
+    } else {
+      const [a,b,c]=pick(triples);
+      if(randInt(0,1)){question='במשולש ישר זווית:\nניצבים: '+a+', '+b+'\nמה היתר?';answer=c;label='אורך היתר?';}
+      else{question='האם '+a+'² + '+b+'² = '+c+'²?\n('+a*a+' + '+b*b+' = '+(c*c)+')';
+        const ansStr='כן';
+        const opts=shuffle(['כן','לא',a*a+b*b+'','לא ניתן']);
+        return{question,qLabel:'📐 פיתגורס',aLabel:'האם נכון?',options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+      }
+    }
+    const ansStr=String(answer);
+    const wrongs=new Set();
+    [answer+1,answer-1,answer+2,answer+3,answer-2].forEach(w=>{if(w!==answer&&w>0)wrongs.add(String(w));});
+    while(wrongs.size<3) wrongs.add(String(answer+randInt(1,5)));
+    const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+    return{question,qLabel:'📐 פיתגורס',aLabel:label,options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+  }
+};
+
+// ── Topic 14: Linear Function (Grade 9) ──────
+const topicLinearFunc = {
+  id: 'linear', name: 'פונקציה קווית', icon: '📈', color: '#00ddaa',
+  generate(diff) {
+    let question, answer, label='מה התשובה?';
+    if(diff==='easy') {
+      const m=randInt(1,5),b=randInt(-5,10),x=randInt(1,6);
+      question='y = '+m+'x'+(b>=0?' + '+b:' \u2212 '+(-b))+'\nמה y כאשר x='+x+'?'; answer=m*x+b; label='y = ?';
+    } else if(diff==='medium') {
+      const m=randInt(1,4),b=randInt(-3,5);
+      question='y = '+m+'x'+(b>=0?' + '+b:' \u2212 '+(-b))+'\nמה השיפוע?'; answer=m; label='השיפוע = ?';
+    } else {
+      const m=randInt(1,5),b=randInt(-5,5),y=m*randInt(1,6)+b;
+      const x=(y-b)/m;
+      question='y = '+m+'x'+(b>=0?' + '+b:' \u2212 '+(-b))+'\nמצא x כאשר y='+y; answer=x; label='x = ?';
+    }
+    const ansStr=String(answer);
+    const wrongs=new Set();
+    [answer+1,answer-1,answer+2,answer-2,answer*2].forEach(w=>{if(String(w)!==ansStr)wrongs.add(String(w));});
+    while(wrongs.size<3) wrongs.add(String(answer+randInt(-5,5)));
+    const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+    return{question,qLabel:'📈 פונקציה',aLabel:label,options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+  }
+};
+
+// ── Topic 15: Exponent Laws (Grade 9) ────────
+const topicExpLaws = {
+  id: 'explaws', name: 'חוקי חזקות', icon: '🔢', color: '#ff8800',
+  generate(diff) {
+    let question, answer, label='מה החזקה?';
+    if(diff==='easy') {
+      const base=randInt(2,5),e1=randInt(1,4),e2=randInt(1,4);
+      question=base+'^'+e1+' \u00D7 '+base+'^'+e2+' = '+base+'^?'; answer=e1+e2;
+    } else if(diff==='medium') {
+      const base=randInt(2,5),e1=randInt(3,7),e2=randInt(1,e1-1);
+      question=base+'^'+e1+' \u00F7 '+base+'^'+e2+' = '+base+'^?'; answer=e1-e2;
+    } else {
+      const base=randInt(2,4),e1=randInt(2,4),e2=randInt(2,3);
+      question='('+base+'^'+e1+')^'+e2+' = '+base+'^?'; answer=e1*e2;
+    }
+    const ansStr=String(answer);
+    const wrongs=new Set();
+    [answer+1,answer-1,answer+2,answer*2,answer+3].forEach(w=>{if(w!==answer&&w>0)wrongs.add(String(w));});
+    while(wrongs.size<3) wrongs.add(String(randInt(1,12)));
+    const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+    return{question,qLabel:'🔢 חוקי חזקות',aLabel:label,options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+  }
+};
+
+// ── Topic 16: Statistics (Grade 9) ───────────
+const topicStats = {
+  id: 'stats', name: 'סטטיסטיקה', icon: '📊', color: '#aa44ff',
+  generate(diff) {
+    let question, answer, label;
+    if(diff==='easy') {
+      const nums=[randInt(2,8),randInt(2,8),randInt(2,8),randInt(2,8),randInt(2,8)];
+      const sum=nums.reduce((a,b)=>a+b,0);
+      answer=sum/nums.length;
+      question='ממוצע:\n'+nums.join(', '); label='מה הממוצע?';
+    } else if(diff==='medium') {
+      const nums=[randInt(1,10),randInt(1,10),randInt(1,10),randInt(1,10),randInt(1,10)].sort((a,b)=>a-b);
+      answer=nums[2]; // median of 5
+      question='חציון:\n'+nums.join(', '); label='מה החציון?';
+    } else {
+      const base=randInt(1,6);
+      const nums=[base,base,base,base+randInt(1,3),base+randInt(2,5),base-randInt(0,2)].filter(n=>n>0);
+      answer=base; // mode
+      question='שכיח:\n'+shuffle(nums).join(', '); label='מה השכיח?';
+    }
+    const ansStr=Number.isInteger(answer)?String(answer):String(Math.round(answer*10)/10);
+    const wrongs=new Set();
+    [answer+1,answer-1,answer+2,answer-2,answer+0.5].forEach(w=>{
+      const ws=Number.isInteger(w)?String(w):String(Math.round(w*10)/10);
+      if(ws!==ansStr&&w>0)wrongs.add(ws);
+    });
+    while(wrongs.size<3) wrongs.add(String(answer+randInt(1,5)));
+    const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+    return{question,qLabel:'📊 סטטיסטיקה',aLabel:label,options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+  }
+};
+
 // ── All Topics ───────────────────────────────
-const ALL_TOPICS = [topicFractions, topicOrderOps, topicAreaPerimeter, topicAngles, topicPowers, topicRatio];
+const ALL_TOPICS = [
+  topicFractions, topicOrderOps, topicAreaPerimeter, topicAngles, topicPowers, topicRatio,
+  topicMultDiv, topicSimpleFrac, topicSigned, topicEquations, topicPercent,
+  topicAlgebra, topicPythagoras, topicLinearFunc, topicExpLaws, topicStats
+];
+
+// ── Grade → Topics Map ───────────────────────
+const GRADES = {
+  4: { label:'כיתה ד׳', topics:['multdiv','simplefrac','area'] },
+  5: { label:'כיתה ה׳', topics:['fractions','orderops','area','angles'] },
+  6: { label:'כיתה ו׳', topics:['fractions','orderops','area','angles','powers','ratio'] },
+  7: { label:'כיתה ז׳', topics:['signed','equations','percent','powers','ratio'] },
+  8: { label:'כיתה ח׳', topics:['algebra','equations','pythagoras','area','angles'] },
+  9: { label:'כיתה ט׳', topics:['linear','explaws','stats','equations','percent'] },
+};
 
 const genQuestion = (diff, selectedTopicIds) => {
   const available = ALL_TOPICS.filter(t => selectedTopicIds.includes(t.id));
@@ -427,13 +736,18 @@ export default function App() {
   const [combo,setCombo] = useState('');
   const [lives,setLives] = useState(START_LIVES);
   const [breakingHeart,setBreakingHeart] = useState(false);
-  const [selectedTopics,setSelectedTopics] = useState(['fractions']);
+  const [selectedTopics,setSelectedTopics] = useState(['fractions','orderops','area','angles','powers','ratio']);
   const [invitesUsed,setInvitesUsed] = useState(0);
+  const [grade,setGrade] = useState(6);
   const [roundNum,setRoundNum] = useState(1);
   const [roundCorrect,setRoundCorrect] = useState(0);
   const [gainedLife,setGainedLife] = useState(false);
+  const [watchingAd,setWatchingAd] = useState(false);
+  const [adCountdown,setAdCountdown] = useState(0);
+  const [adsUsed,setAdsUsed] = useState(0);
+  const [showInterstitial,setShowInterstitial] = useState(false);
 
-  const gs = useRef({score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0});
+  const gs = useRef({score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0});
   const endTimeRef = useRef(0);
   const rafRef = useRef(null);
   const feedbackTimer = useRef(null);
@@ -454,9 +768,9 @@ export default function App() {
   };
 
   const startGame = () => {
-    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0};
+    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0};
     setScore(0); setStreak(0); setMaxStreak(0); setAnswered(0);
-    setLives(START_LIVES); setInvitesUsed(0);
+    setLives(START_LIVES); setInvitesUsed(0); setAdsUsed(0);
     setRoundNum(1); setRoundCorrect(0); setGainedLife(false);
     setIsHigh(false); setFeedback(null); setSelIdx(null); setCombo('');
     setScreen('playing');
@@ -618,6 +932,47 @@ export default function App() {
     }
   };
 
+  const reviveWithAd = () => {
+    const g = gs.current;
+    if(g.adsUsed < REVIVE_AD_LIMIT) {
+      setWatchingAd(true);
+      setAdCountdown(AD_WATCH_SECONDS);
+      const interval = setInterval(() => {
+        setAdCountdown(prev => {
+          if(prev <= 1) {
+            clearInterval(interval);
+            setWatchingAd(false);
+            g.adsUsed++;
+            g.lives = 1;
+            setAdsUsed(g.adsUsed);
+            setLives(1);
+            playRevive();
+            setScreen('playing');
+            nextQ();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  };
+
+  const showInterstitialAd = (callback) => {
+    setShowInterstitial(true);
+    setAdCountdown(3);
+    const interval = setInterval(() => {
+      setAdCountdown(prev => {
+        if(prev <= 1) {
+          clearInterval(interval);
+          setShowInterstitial(false);
+          if(callback) callback();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
   const endGame = () => {
     cancelAnimationFrame(rafRef.current);
     clearTimeout(feedbackTimer.current);
@@ -631,8 +986,14 @@ export default function App() {
     setRoundCorrect(0);
     setRoundNum(prev => prev + 1);
     setFeedback(null); setSelIdx(null);
-    setScreen('playing');
-    nextQ();
+    // Show interstitial ad every 2 rounds
+    const nextRound = Math.ceil(g.answered / ROUND_SIZE) + 1;
+    if(nextRound % 2 === 0) {
+      showInterstitialAd(() => { setScreen('playing'); nextQ(); });
+    } else {
+      setScreen('playing');
+      nextQ();
+    }
   };
 
   const shareWhatsApp = () => {
@@ -640,6 +1001,12 @@ export default function App() {
     const rounds = Math.ceil(g.answered/ROUND_SIZE);
     const txt = '\u{1F9E0}\u26A1 \u05DE\u05EA\u05DE\u05D8\u05D9\u05E7\u05D4 \u05D1\u05DC\u05D9\u05D9\u05D6 \u26A1\u{1F9E0}\n\n\u05D4\u05E9\u05D2\u05EA\u05D9 '+g.score+' \u05E0\u05E7\u05D5\u05D3\u05D5\u05EA! \u{1F525}\n\u05E8\u05E6\u05E3 \u05D4\u05DB\u05D9 \u05D0\u05E8\u05D5\u05DA: '+g.maxStreak+' \u2728\n\u05E2\u05E0\u05D9\u05EA\u05D9 \u05E2\u05DC '+g.answered+' \u05E9\u05D0\u05DC\u05D5\u05EA \u05D1-'+rounds+' \u05E1\u05D9\u05D1\u05D5\u05D1\u05D9\u05DD \u{1F4CA}\n\n\u05D0\u05EA/\u05D4 \u05D9\u05DB\u05D5\u05DC/\u05D4 \u05DC\u05E0\u05E6\u05D7 \u05D0\u05D5\u05EA\u05D9? \u{1F60F}\n\u05E0\u05E1\u05D4 \u05E2\u05DB\u05E9\u05D9\u05D5:\nhttps://sivanrab-eng.github.io/Math-blitz-app/';
     window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+  };
+
+  const changeGrade = (g) => {
+    setGrade(g);
+    const gradeTopics = GRADES[g].topics;
+    setSelectedTopics([...gradeTopics]);
   };
 
   const toggleTopic = (id) => {
@@ -710,11 +1077,33 @@ export default function App() {
             </div>
             <div className="float-anim" style={{fontSize:'3rem',lineHeight:1}}>🧠</div>
 
+            {/* Grade Selection */}
+            <div className="w-full max-w-xs slide-up" style={{animationDelay:'0.03s'}}>
+              <p className="text-sm text-gray-400 text-center mb-2">בחר כיתה:</p>
+              <div className="flex justify-center gap-2">
+                {Object.entries(GRADES).map(([g,info]) => {
+                  const sel = grade === Number(g);
+                  return (
+                    <button key={g} onClick={()=>changeGrade(Number(g))}
+                      className="topic-chip rounded-xl py-2 px-3 text-sm font-bold border-2"
+                      style={{
+                        borderColor: sel ? '#00e5ff' : 'rgba(255,255,255,0.1)',
+                        background: sel ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.02)',
+                        color: sel ? '#00e5ff' : '#666',
+                        boxShadow: sel ? '0 0 12px rgba(0,229,255,0.3)' : 'none',
+                      }}>
+                      {g}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Topic Selection */}
             <div className="w-full max-w-xs slide-up" style={{animationDelay:'0.05s'}}>
               <p className="text-sm text-gray-400 text-center mb-2">בחר נושאים:</p>
               <div className="grid grid-cols-2 gap-2">
-                {ALL_TOPICS.map(t => {
+                {ALL_TOPICS.filter(t => GRADES[grade].topics.includes(t.id)).map(t => {
                   const sel = selectedTopics.includes(t.id);
                   return (
                     <button key={t.id} onClick={()=>toggleTopic(t.id)}
@@ -753,7 +1142,7 @@ export default function App() {
               style={{borderColor:'#ff0080',color:'#ff0080',background:'rgba(255,0,128,0.06)',animationDelay:'0.2s'}}>
               טבלת שיאים 🏆
             </button>
-            <p className="text-xs text-gray-600 mt-1 slide-up" style={{animationDelay:'0.25s'}}>כיתה ו׳ • מתמטיקה והנדסה</p>
+            <p className="text-xs text-gray-600 mt-1 slide-up" style={{animationDelay:'0.25s'}}>{GRADES[grade].label} • מתמטיקה והנדסה</p>
           </div>
         )}
 
@@ -963,6 +1352,28 @@ export default function App() {
               </div>
             )}
 
+            {/* Watch ad for life */}
+            {gs.current.adsUsed < REVIVE_AD_LIMIT && !watchingAd ? (
+              <button onClick={reviveWithAd}
+                className="w-72 py-4 rounded-2xl text-lg font-bold border-2 btn-option slide-up"
+                style={{borderColor:'#ffaa00',color:'#ffaa00',background:'rgba(255,170,0,0.08)',animationDelay:'0.25s',boxShadow:'0 0 15px rgba(255,170,0,0.2)'}}>
+                <div>צפה בפרסומת 🎬</div>
+                <div className="text-sm mt-1 opacity-75">וקבל חיים בחינם! ❤️</div>
+              </button>
+            ) : watchingAd ? (
+              <div className="w-72 py-6 rounded-2xl text-center border-2 slide-up revive-pulse"
+                style={{borderColor:'#ffaa00',color:'#ffaa00',background:'rgba(255,170,0,0.1)',animationDelay:'0.25s'}}>
+                <div className="text-3xl mb-2" style={{fontFamily:"'Orbitron',sans-serif"}}>{adCountdown}</div>
+                <div className="text-sm">הפרסומת מסתיימת...</div>
+              </div>
+            ) : (
+              <div className="w-72 py-3 rounded-2xl text-center border-2 slide-up opacity-40"
+                style={{borderColor:'#333',color:'#666',background:'rgba(255,255,255,0.02)',animationDelay:'0.25s'}}>
+                <div>צפה בפרסומת 🎬</div>
+                <div className="text-xs mt-1">כבר צפית בפרסומת</div>
+              </div>
+            )}
+
             <button onClick={()=>{saveScore(); setScreen('gameover');}}
               className="py-3 px-8 rounded-2xl text-base font-bold border-2 btn-option slide-up"
               style={{borderColor:'#ff0080',color:'#ff0080',background:'rgba(255,0,128,0.06)',animationDelay:'0.3s'}}>
@@ -1061,6 +1472,24 @@ export default function App() {
               style={{borderColor:'#00e5ff',color:'#00e5ff',background:'rgba(0,229,255,0.08)'}}>
               שחק עכשיו ⚡
             </button>
+          </div>
+        )}
+
+        {/* ── INTERSTITIAL AD OVERLAY ──── */}
+        {showInterstitial && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(0,0,0,0.9)'}}>
+            <div className="text-center pop-in">
+              <div className="text-sm text-gray-400 mb-4">פרסומת</div>
+              <div className="w-72 h-48 rounded-2xl border-2 flex items-center justify-center mb-4"
+                style={{borderColor:'rgba(255,170,0,0.3)',background:'rgba(255,170,0,0.05)'}}>
+                <div className="text-center">
+                  <div className="text-4xl mb-2">📢</div>
+                  <div className="text-gray-400 text-sm">מקום לפרסומת</div>
+                </div>
+              </div>
+              <div className="text-2xl font-black" style={{color:'#ffaa00',fontFamily:"'Orbitron',sans-serif"}}>{adCountdown}</div>
+              <div className="text-xs text-gray-500 mt-1">ממשיכים עוד רגע...</div>
+            </div>
           </div>
         )}
       </div>
