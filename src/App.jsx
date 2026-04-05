@@ -769,6 +769,11 @@ const genQuestion = (diff, selectedTopicIds) => {
   const topic = available.length > 0 ? pick(available) : topicFractions;
   const q = topic.generate(diff);
   q.topicId = topic.id;
+  // Auto-generate solution explanation from question text and answer
+  const exp = EXPLANATIONS[topic.id];
+  if(exp) {
+    q.solutionSteps = exp.f + '\n' + (q.question.includes('\n') ? q.question.split('\n')[0] : q.question) + ' → ' + q.correct;
+  }
   return q;
 };
 
@@ -816,6 +821,15 @@ export default function App() {
   const [unlockedAch,setUnlockedAch] = useState({});
   const [playerName,setPlayerName] = useState(()=>{ try{return localStorage.getItem('math-blitz-name')||'';}catch{return '';} });
   const [totalCorrect,setTotalCorrect] = useState(0);
+  const [showPrize,setShowPrize] = useState(false);
+  const [prizePoints,setPrizePoints] = useState(0);
+  const [savedGame,setSavedGame] = useState(()=>{ try{const s=localStorage.getItem('math-blitz-save');return s?JSON.parse(s):null;}catch{return null;} });
+  const [duelMode,setDuelMode] = useState(false);
+  const [duelPlayer,setDuelPlayer] = useState(1);
+  const [duelName1,setDuelName1] = useState('');
+  const [duelName2,setDuelName2] = useState('');
+  const [duelScore1,setDuelScore1] = useState(0);
+  const [duelQCount] = useState(5);
 
   const gs = useRef({score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0});
   const endTimeRef = useRef(0);
@@ -838,11 +852,13 @@ export default function App() {
   };
 
   const startGame = () => {
-    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics]};
+    setDuelMode(false);
+    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics],totalCorrect:0};
     setScore(0); setStreak(0); setMaxStreak(0); setAnswered(0);
     setLives(START_LIVES); setInvitesUsed(0); setAdsUsed(0); setTotalCorrect(0);
     setRoundNum(1); setRoundCorrect(0); setGainedLife(false);
     setIsHigh(false); setFeedback(null); setSelIdx(null); setCombo('');
+    clearSave();
     setScreen('playing');
     nextQ();
   };
@@ -908,11 +924,16 @@ export default function App() {
 
   const checkRoundEnd = (delay) => {
     const g = gs.current;
+    if(duelMode && checkDuelEnd()) return true;
     if(g.answered % ROUND_SIZE === 0 && g.answered > 0) {
       feedbackTimer.current = setTimeout(() => {
         cancelAnimationFrame(rafRef.current);
         playRoundComplete();
-        setScreen('roundSummary');
+        saveGameState();
+        // Show prize box first, then round summary
+        const bonus = g.roundCorrect >= 8 ? 50 : g.roundCorrect >= 5 ? 25 : 10;
+        showPrizeBox(bonus);
+        setTimeout(() => { collectPrize(); setScreen('roundSummary'); }, 2000);
       }, delay);
       return true;
     }
@@ -1146,6 +1167,90 @@ export default function App() {
     try { localStorage.setItem('math-blitz-name', name); } catch{}
   };
 
+  // ── Save / Resume Progress ───────────────
+  const saveGameState = () => {
+    const g = gs.current;
+    const state = {score:g.score,streak:g.streak,maxStreak:g.maxStreak,diff:g.diff,dur:g.dur,answered:g.answered,
+      lives:g.lives,roundCorrect:g.roundCorrect,totalCorrect:g.totalCorrect||0,
+      grade,selectedTopics:[...g.selectedTopics],roundNum,timestamp:Date.now()};
+    try{localStorage.setItem('math-blitz-save',JSON.stringify(state));}catch{}
+    setSavedGame(state);
+  };
+
+  const resumeGame = () => {
+    if(!savedGame) return;
+    const s = savedGame;
+    gs.current = {score:s.score,streak:s.streak,maxStreak:s.maxStreak,wrongStreak:0,diff:s.diff,dur:s.dur,
+      answered:s.answered,lives:s.lives,invitesUsed:0,roundCorrect:s.roundCorrect,adsUsed:0,
+      selectedTopics:s.selectedTopics,totalCorrect:s.totalCorrect||0};
+    setScore(s.score); setStreak(s.streak); setMaxStreak(s.maxStreak); setAnswered(s.answered);
+    setLives(s.lives); setRoundNum(s.roundNum||1); setRoundCorrect(s.roundCorrect);
+    setTotalCorrect(s.totalCorrect||0); setGrade(s.grade||6);
+    setSelectedTopics(s.selectedTopics);
+    setIsHigh(false); setFeedback(null); setSelIdx(null); setCombo('');
+    setScreen('playing');
+    nextQ();
+    try{localStorage.removeItem('math-blitz-save');}catch{}
+    setSavedGame(null);
+  };
+
+  const clearSave = () => {
+    try{localStorage.removeItem('math-blitz-save');}catch{}
+    setSavedGame(null);
+  };
+
+  // ── Prize Box ────────────────────────────
+  const showPrizeBox = (bonus) => {
+    setPrizePoints(bonus);
+    setShowPrize(true);
+  };
+
+  const collectPrize = () => {
+    const g = gs.current;
+    g.score += prizePoints;
+    setScore(g.score);
+    setShowPrize(false);
+  };
+
+  // ── Duel Mode ────────────────────────────
+  const startDuel = () => {
+    if(!duelName1.trim() || !duelName2.trim()) return;
+    setDuelMode(true);
+    setDuelPlayer(1);
+    setDuelScore1(0);
+    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,
+      lives:99,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics],totalCorrect:0};
+    setScore(0); setStreak(0); setMaxStreak(0); setAnswered(0); setLives(99);
+    setTotalCorrect(0); setFeedback(null); setSelIdx(null); setCombo('');
+    setScreen('playing');
+    nextQ();
+  };
+
+  const checkDuelEnd = () => {
+    const g = gs.current;
+    if(g.answered >= duelQCount) {
+      if(duelPlayer === 1) {
+        setDuelScore1(g.score);
+        setDuelPlayer(2);
+        setScreen('duelSwitch');
+        return true;
+      } else {
+        setScreen('duelResult');
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const startDuelPlayer2 = () => {
+    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,
+      lives:99,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics],totalCorrect:0};
+    setScore(0); setStreak(0); setMaxStreak(0); setAnswered(0); setLives(99);
+    setTotalCorrect(0); setFeedback(null); setSelIdx(null); setCombo('');
+    setScreen('playing');
+    nextQ();
+  };
+
   const toggleTopic = (id) => {
     setSelectedTopics(prev => {
       if(prev.includes(id)) {
@@ -1203,6 +1308,26 @@ export default function App() {
         .char-think{animation:charThinkAnim 2s ease infinite}
         @keyframes achSlide{0%{transform:translateX(-50%) translateY(-80px);opacity:0}15%{transform:translateX(-50%) translateY(0);opacity:1}85%{transform:translateX(-50%) translateY(0);opacity:1}100%{transform:translateX(-50%) translateY(-80px);opacity:0}}
         .ach-toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:500;display:flex;align-items:center;gap:8px;padding:10px 20px;border-radius:20px;background:linear-gradient(135deg,rgba(124,58,237,0.9),rgba(76,29,149,0.9));border:2px solid #a78bfa;color:#fff;font-weight:800;font-size:14px;box-shadow:0 8px 24px rgba(124,58,237,0.5);animation:achSlide 3s ease forwards;white-space:nowrap}
+        @keyframes starTwinkle{0%,100%{opacity:0.2;transform:scale(0.5)}50%{opacity:1;transform:scale(1)}}
+        .starfield{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:0;overflow:hidden}
+        .star{position:absolute;border-radius:50%;background:#fff}
+        .opt-3d{position:relative;border:none;border-radius:18px;font-size:17px;font-weight:900;color:#fff;cursor:pointer;padding:0;height:68px;transition:transform 0.08s;overflow:hidden;-webkit-tap-highlight-color:transparent}
+        .opt-3d:active:not(:disabled){transform:translateY(4px) scale(0.97)}
+        .opt-3d:disabled{filter:brightness(0.7)}
+        .opt-3d-shadow{position:absolute;top:0;right:0;bottom:0;left:0;border-radius:18px;transform:translateY(4px)}
+        .opt-3d-face{position:absolute;top:0;right:0;left:0;bottom:4px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;text-shadow:0 2px 3px rgba(0,0,0,0.25)}
+        .opt-3d-face::before{content:'';position:absolute;top:0;right:0;bottom:0;left:0;border-radius:18px;background:radial-gradient(circle at 30% 35%,rgba(255,255,255,0.2) 5px,transparent 5px),radial-gradient(circle at 70% 35%,rgba(255,255,255,0.2) 5px,transparent 5px),radial-gradient(circle at 30% 70%,rgba(255,255,255,0.2) 5px,transparent 5px),radial-gradient(circle at 70% 70%,rgba(255,255,255,0.2) 5px,transparent 5px);pointer-events:none}
+        .opt-3d-face::after{content:'';position:absolute;top:0;left:0;right:0;height:45%;border-radius:18px 18px 40% 40%;background:linear-gradient(180deg,rgba(255,255,255,0.18) 0%,transparent 100%);pointer-events:none}
+        .opt-3d.correct-3d .opt-3d-shadow{background:#15803d!important}
+        .opt-3d.correct-3d .opt-3d-face{background:linear-gradient(160deg,#86efac,#22c55e)!important;animation:correctPulse3d 0.4s ease}
+        .opt-3d.wrong-3d .opt-3d-shadow{background:#991b1b!important}
+        .opt-3d.wrong-3d .opt-3d-face{background:linear-gradient(160deg,#fca5a5,#ef4444)!important;animation:wrongShake3d 0.3s ease}
+        @keyframes correctPulse3d{0%{transform:scale(1)}50%{transform:scale(1.03)}100%{transform:scale(1)}}
+        @keyframes wrongShake3d{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+        @keyframes prizeFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+        @keyframes prizeIn{0%{transform:scale(0) rotate(-10deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+        .prize-box{animation:prizeFloat 2s ease-in-out infinite}
+        .prize-appear{animation:prizeIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275)}
         .hint-bubble{position:absolute;bottom:100%;right:0;left:0;margin-bottom:8px;padding:10px 14px;border-radius:14px;background:rgba(26,10,62,0.95);border:2px solid #fbbf24;color:#fef3c7;font-size:13px;font-weight:700;line-height:1.5;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);z-index:20}
         .explain-box{margin-top:8px;padding:10px 14px;border-radius:14px;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.15);text-align:right}
         .explain-title{font-size:11px;color:#a78bfa;font-weight:800;margin-bottom:4px}
@@ -1210,6 +1335,15 @@ export default function App() {
       `}</style>
 
       <div className="grid-bg fixed inset-0 pointer-events-none"/>
+      {/* Starfield */}
+      <div className="starfield">{Array.from({length:40},(_,i)=>(
+        <div key={i} className="star" style={{
+          width:randInt(1,3)+'px',height:randInt(1,3)+'px',
+          top:((i*17+7)%100)+'%',left:((i*31+13)%100)+'%',
+          opacity:0.2+Math.random()*0.6,
+          animation:`starTwinkle ${2+Math.random()*4}s ease-in-out ${Math.random()*3}s infinite alternate`
+        }}/>
+      ))}</div>
       <div className="fixed top-0 left-0 right-0 h-40 pointer-events-none" style={{background:'radial-gradient(ellipse at 50% 0%,rgba(0,229,255,0.08) 0%,transparent 70%)'}}/>
       <div className="fixed bottom-0 left-0 right-0 h-40 pointer-events-none" style={{background:'radial-gradient(ellipse at 50% 100%,rgba(255,0,128,0.06) 0%,transparent 70%)'}}/>
 
@@ -1294,6 +1428,18 @@ export default function App() {
               className="w-64 py-4 rounded-2xl text-xl font-black border-2 glow-box-cyan btn-option slide-up"
               style={{borderColor:'#00e5ff',color:'#00e5ff',background:'rgba(0,229,255,0.08)',animationDelay:'0.15s'}}>
               התחל משחק ⚡
+            </button>
+            {savedGame && (
+              <button onClick={resumeGame}
+                className="w-64 py-3 rounded-2xl text-lg font-bold border-2 btn-option slide-up"
+                style={{borderColor:'#00ff88',color:'#00ff88',background:'rgba(0,255,136,0.08)',animationDelay:'0.17s',boxShadow:'0 0 12px rgba(0,255,136,0.2)'}}>
+                ▶️ המשך משחק ({savedGame.score} נק׳)
+              </button>
+            )}
+            <button onClick={()=>setScreen('duelSetup')}
+              className="w-64 py-3 rounded-2xl text-lg font-bold border-2 btn-option slide-up"
+              style={{borderColor:'#ff4444',color:'#ff4444',background:'rgba(255,68,68,0.08)',animationDelay:'0.18s',boxShadow:'0 0 12px rgba(255,68,68,0.2)'}}>
+              ⚔️ דואל 1v1
             </button>
             <button onClick={()=>setScreen('leaderboard')}
               className="w-64 py-3 rounded-2xl text-lg font-bold border-2 glow-box-pink btn-option slide-up"
@@ -1384,22 +1530,29 @@ export default function App() {
               )}
             </div>
 
-            {/* Options Grid */}
+            {/* Options Grid - 3D Lego Style */}
             <div className="grid grid-cols-2 gap-3 mt-auto">
               {question.options.map((opt,i) => {
-                let borderC = 'rgba(255,255,255,0.12)';
-                let bgC = 'rgba(255,255,255,0.03)';
+                const colors = [
+                  {face:'linear-gradient(160deg,#60a5fa,#2563eb)',shadow:'#1d4ed8'},
+                  {face:'linear-gradient(160deg,#fde68a,#f59e0b)',shadow:'#b45309',dark:true},
+                  {face:'linear-gradient(160deg,#fdba74,#f97316)',shadow:'#c2410c'},
+                  {face:'linear-gradient(160deg,#93c5fd,#3b82f6)',shadow:'#1d4ed8'},
+                ];
+                const c = colors[i%4];
                 let extraClass = '';
-                if(feedback && i === question.correctIdx) { borderC='#00e5ff'; bgC='rgba(0,229,255,0.12)'; extraClass='correct-anim'; }
-                else if((feedback === 'wrong'||feedback==='close') && i === selIdx) { borderC='#ff0080'; bgC='rgba(255,0,128,0.12)'; extraClass='wrong-anim'; }
-                else if(feedback === 'timeout' && i === question.correctIdx) { borderC='#00e5ff'; bgC='rgba(0,229,255,0.08)'; }
+                if(feedback && i === question.correctIdx) extraClass='correct-3d';
+                else if((feedback==='wrong'||feedback==='close') && i === selIdx) extraClass='wrong-3d';
+                else if(feedback==='timeout' && i === question.correctIdx) extraClass='correct-3d';
 
                 return (
                   <button key={i} onClick={()=>handleAnswer(i)} disabled={!!feedback}
-                    className={'rounded-2xl py-5 text-center border-2 btn-option slide-up '+extraClass}
-                    style={{borderColor:borderC,background:bgC,animationDelay:(i*0.06)+'s',
-                      color: feedback && i===question.correctIdx ? '#00e5ff' : (feedback==='wrong'||feedback==='close')&&i===selIdx ? '#ff0080' : '#fff'}}>
-                    <span dir="ltr" className="text-xl font-bold" style={{fontFamily:"'Orbitron',sans-serif"}}>{opt}</span>
+                    className={'opt-3d slide-up '+extraClass}
+                    style={{animationDelay:(i*0.06)+'s'}}>
+                    <div className="opt-3d-shadow" style={{background:c.shadow}}/>
+                    <div className="opt-3d-face" style={{background:c.face,color:c.dark?'#1c1917':'#fff'}}>
+                      <span dir="ltr" style={{fontFamily:"'Orbitron',sans-serif",fontSize:'17px',fontWeight:900,position:'relative',zIndex:2}}>{opt}</span>
+                    </div>
                   </button>
                 );
               })}
@@ -1414,10 +1567,15 @@ export default function App() {
                 {/* Explanation when wrong */}
                 {(feedback==='wrong'||feedback==='close'||feedback==='timeout') && question.topicId && EXPLANATIONS[question.topicId] && (
                   <div className="explain-box mt-3 text-right">
-                    <div className="explain-title">📖 {EXPLANATIONS[question.topicId].t}</div>
+                    <div className="explain-title">📖 איך פותרים?</div>
                     <div className="text-xs text-gray-300 leading-relaxed">{EXPLANATIONS[question.topicId].b}</div>
                     <div className="explain-formula">{EXPLANATIONS[question.topicId].f}</div>
-                    <div className="text-xs text-gray-500 mt-2">✅ התשובה: <span style={{color:'#00e5ff',fontWeight:900}}>{question.correct}</span></div>
+                    {question.solutionSteps && (
+                      <div className="text-xs mt-2 py-2 px-3 rounded-lg" style={{background:'rgba(0,229,255,0.08)',border:'1px solid rgba(0,229,255,0.2)',color:'#7dd3fc',whiteSpace:'pre-line',direction:'ltr',textAlign:'center'}}>
+                        {question.solutionSteps}
+                      </div>
+                    )}
+                    <div className="text-xs text-gray-500 mt-2">✅ התשובה הנכונה: <span style={{color:'#00ff88',fontWeight:900,fontSize:'14px'}}>{question.correct}</span></div>
                   </div>
                 )}
               </div>
@@ -1664,6 +1822,88 @@ export default function App() {
               style={{borderColor:'#00e5ff',color:'#00e5ff',background:'rgba(0,229,255,0.08)'}}>
               שחק עכשיו ⚡
             </button>
+          </div>
+        )}
+
+        {/* ── DUEL SETUP ──────────────── */}
+        {screen === 'duelSetup' && (
+          <div className="flex-1 flex flex-col items-center justify-center px-6 gap-4">
+            <div className="text-5xl pop-in">⚔️</div>
+            <p className="text-2xl font-black glow-pink" style={{color:'#ff4444'}}>דואל 1 נגד 1</p>
+            <p className="text-sm text-gray-400">שני שחקנים, אותו טלפון, {duelQCount} שאלות לכל אחד</p>
+            <input type="text" value={duelName1} onChange={(e)=>setDuelName1(e.target.value)} placeholder="שם שחקן 1"
+              className="w-64 py-3 px-4 rounded-xl text-center text-lg font-bold outline-none"
+              style={{background:'rgba(0,229,255,0.08)',border:'2px solid rgba(0,229,255,0.3)',color:'#00e5ff'}} maxLength={12}/>
+            <input type="text" value={duelName2} onChange={(e)=>setDuelName2(e.target.value)} placeholder="שם שחקן 2"
+              className="w-64 py-3 px-4 rounded-xl text-center text-lg font-bold outline-none"
+              style={{background:'rgba(255,68,68,0.08)',border:'2px solid rgba(255,68,68,0.3)',color:'#ff4444'}} maxLength={12}/>
+            <button onClick={startDuel}
+              className="w-64 py-4 rounded-2xl text-xl font-black border-2 btn-option"
+              style={{borderColor:'#ff4444',color:'#fff',background:'linear-gradient(135deg,#dc2626,#991b1b)',boxShadow:'0 6px 0 #7f1d1d,0 8px 20px rgba(220,38,38,0.4)'}}>
+              ⚔️ התחילו!
+            </button>
+            <button onClick={()=>setScreen('menu')} className="text-sm text-gray-500 btn-option">חזרה ←</button>
+          </div>
+        )}
+
+        {/* ── DUEL SWITCH ─────────────── */}
+        {screen === 'duelSwitch' && (
+          <div className="flex-1 flex flex-col items-center justify-center px-6 gap-5">
+            <div className="text-5xl pop-in">🔄</div>
+            <p className="text-2xl font-black glow-cyan" style={{color:'#00e5ff'}}>{duelName1} סיים!</p>
+            <div className="text-center">
+              <span className="text-gray-400">ניקוד: </span>
+              <span className="text-3xl font-black" style={{color:'#ffaa00',fontFamily:"'Orbitron',sans-serif"}}>{duelScore1}</span>
+            </div>
+            <div className="text-lg font-bold" style={{color:'#ff4444'}}>עכשיו תור {duelName2}!</div>
+            <p className="text-sm text-gray-500">העבירו את הטלפון 📱</p>
+            <button onClick={startDuelPlayer2}
+              className="w-64 py-4 rounded-2xl text-xl font-black border-2 btn-option"
+              style={{borderColor:'#ff4444',color:'#fff',background:'linear-gradient(135deg,#dc2626,#991b1b)',boxShadow:'0 6px 0 #7f1d1d'}}>
+              ▶️ {duelName2} מתחיל!
+            </button>
+          </div>
+        )}
+
+        {/* ── DUEL RESULT ─────────────── */}
+        {screen === 'duelResult' && (() => {
+          const s2 = gs.current.score;
+          const winner = duelScore1 > s2 ? duelName1 : s2 > duelScore1 ? duelName2 : null;
+          return (
+          <div className="flex-1 flex flex-col items-center justify-center px-6 gap-4">
+            <div className="text-5xl pop-in">{winner ? '🏆' : '🤝'}</div>
+            <p className="text-2xl font-black pop-in" style={{color:'#fbbf24'}}>
+              {winner ? winner+' ניצח!' : 'תיקו!'}
+            </p>
+            <div className="flex gap-6 slide-up">
+              <div className="text-center px-5 py-4 rounded-2xl border-2" style={{borderColor:'rgba(0,229,255,0.3)',background:'rgba(0,229,255,0.05)'}}>
+                <div className="text-sm text-gray-400 mb-1">{duelName1}</div>
+                <div className="text-3xl font-black" style={{color:'#00e5ff',fontFamily:"'Orbitron',sans-serif"}}>{duelScore1}</div>
+              </div>
+              <div className="text-2xl font-black self-center" style={{color:'#ff4444'}}>VS</div>
+              <div className="text-center px-5 py-4 rounded-2xl border-2" style={{borderColor:'rgba(255,68,68,0.3)',background:'rgba(255,68,68,0.05)'}}>
+                <div className="text-sm text-gray-400 mb-1">{duelName2}</div>
+                <div className="text-3xl font-black" style={{color:'#ff4444',fontFamily:"'Orbitron',sans-serif"}}>{s2}</div>
+              </div>
+            </div>
+            <button onClick={startDuel} className="w-64 py-3 rounded-2xl text-lg font-bold border-2 btn-option"
+              style={{borderColor:'#ff4444',color:'#ff4444',background:'rgba(255,68,68,0.08)'}}>
+              ⚔️ ריוואנץ׳!
+            </button>
+            <button onClick={()=>{setDuelMode(false);setScreen('menu');}} className="text-sm text-gray-500 btn-option">תפריט ראשי</button>
+          </div>);
+        })()}
+
+        {/* ── PRIZE BOX OVERLAY ────────── */}
+        {showPrize && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(10,5,30,0.92)'}}>
+            <div className="text-center prize-appear">
+              <div className="text-6xl mb-4 prize-box">🎁</div>
+              <p className="text-xl font-black" style={{color:'#fbbf24'}}>פרס סיבוב!</p>
+              <div className="text-3xl font-black mt-2 pop-in" style={{color:'#00ff88',fontFamily:"'Orbitron',sans-serif",textShadow:'0 0 20px rgba(0,255,136,0.5)'}}>
+                +{prizePoints} 💰
+              </div>
+            </div>
           </div>
         )}
 
