@@ -119,6 +119,52 @@ const shuffle = (arr) => [...arr].sort(()=>Math.random()-0.5);
 const randInt = (min,max) => Math.floor(Math.random()*(max-min+1))+min;
 const pick = (arr) => arr[Math.floor(Math.random()*arr.length)];
 
+// ── Shape Drawing (SVG) ─────────────────────
+const drawRect = (w,h,label) => {
+  const sw=140,sh=90,bx=40,by=10,bw=100,bh=65;
+  return `<svg width="${sw}" height="${sh}" xmlns="http://www.w3.org/2000/svg">
+    <rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="rgba(0,229,255,0.15)" stroke="#00e5ff" stroke-width="2.5" rx="3"/>
+    <text x="${bx+bw/2}" y="${by+bh+16}" fill="#99f6e4" font-size="12" text-anchor="middle" font-weight="800">${w}</text>
+    <text x="${bx-8}" y="${by+bh/2+4}" fill="#fda4af" font-size="12" text-anchor="end" font-weight="800">${h}</text>
+    ${label?`<text x="${bx+bw/2}" y="${by+bh/2+5}" fill="rgba(255,255,255,0.4)" font-size="10" text-anchor="middle">${label}</text>`:''}
+  </svg>`;
+};
+const drawSquare = (s) => {
+  const sw=130,sh=100,bx=30,by=10,bs=75;
+  return `<svg width="${sw}" height="${sh}" xmlns="http://www.w3.org/2000/svg">
+    <rect x="${bx}" y="${by}" width="${bs}" height="${bs}" fill="rgba(0,255,136,0.15)" stroke="#00ff88" stroke-width="2.5" rx="3"/>
+    <text x="${bx+bs/2}" y="${by+bs+16}" fill="#99f6e4" font-size="12" text-anchor="middle" font-weight="800">${s}</text>
+  </svg>`;
+};
+const drawTriangle = (base,height) => {
+  const sw=180,sh=120,bx=30,by=100,tw=120,th=70;
+  return `<svg width="${sw}" height="${sh}" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="${bx},${by} ${bx+tw},${by} ${bx+tw/2},${by-th}" fill="rgba(0,229,255,0.15)" stroke="#00e5ff" stroke-width="2.5"/>
+    <line x1="${bx+tw/2}" y1="${by-th}" x2="${bx+tw/2}" y2="${by}" stroke="#fbbf24" stroke-width="2" stroke-dasharray="5,3"/>
+    <text x="${bx+tw/2}" y="${by+16}" fill="#99f6e4" font-size="12" text-anchor="middle" font-weight="800">${base}</text>
+    <text x="${bx+tw/2+14}" y="${by-th/2+4}" fill="#fbbf24" font-size="12" font-weight="800">${height}</text>
+  </svg>`;
+};
+const drawParallelogram = (base,height) => {
+  const sw=180,sh=100,bx=25,by=10,bw=110,bh=55,sk=25;
+  return `<svg width="${sw}" height="${sh}" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="${bx+sk},${by} ${bx+bw+sk},${by} ${bx+bw},${by+bh} ${bx},${by+bh}" fill="rgba(255,0,128,0.15)" stroke="#ff0080" stroke-width="2.5"/>
+    <line x1="${bx+sk}" y1="${by}" x2="${bx+sk}" y2="${by+bh}" stroke="#fbbf24" stroke-width="2" stroke-dasharray="5,3"/>
+    <text x="${bx+bw/2}" y="${by+bh+16}" fill="#99f6e4" font-size="12" text-anchor="middle" font-weight="800">${base}</text>
+    <text x="${bx+sk+12}" y="${by+bh/2+4}" fill="#fbbf24" font-size="12" font-weight="800">${height}</text>
+  </svg>`;
+};
+const drawTrapezoid = (a,b,h) => {
+  const sw=200,sh=110,by=10,bh=65,topW=70,botW=130,cx=100;
+  const tx1=cx-topW/2,tx2=cx+topW/2,bx1=cx-botW/2,bx2=cx+botW/2;
+  return `<svg width="${sw}" height="${sh}" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="${tx1},${by} ${tx2},${by} ${bx2},${by+bh} ${bx1},${by+bh}" fill="rgba(170,136,255,0.15)" stroke="#aa88ff" stroke-width="2.5"/>
+    <text x="${cx}" y="${by-4}" fill="#c4b5fd" font-size="11" text-anchor="middle" font-weight="800">${a}</text>
+    <text x="${cx}" y="${by+bh+16}" fill="#99f6e4" font-size="11" text-anchor="middle" font-weight="800">${b}</text>
+    <text x="${bx2+10}" y="${by+bh/2+4}" fill="#fbbf24" font-size="11" font-weight="800">${h}</text>
+  </svg>`;
+};
+
 // ═══════════════════════════════════════════════
 // ── TOPIC SYSTEM ─────────────────────────────
 // ═══════════════════════════════════════════════
@@ -227,34 +273,40 @@ const topicOrderOps = {
 const topicAreaPerimeter = {
   id: 'area', name: 'שטח והיקף', icon: '📐', color: '#00ff88',
   generate(diff) {
-    let question, answer, label;
+    let question, answer, label, shape='';
     if(diff === 'easy') {
       const w = randInt(3,12), h = randInt(3,12);
+      shape = drawRect(w,h);
       if(randInt(0,1)) {
-        question = 'שטח מלבן\n'+w+' \u00D7 '+h; answer = w*h; label = 'מה השטח?';
+        question = 'שטח מלבן'; answer = w*h; label = 'מה השטח?';
       } else {
-        question = 'היקף מלבן\n'+w+' \u00D7 '+h; answer = 2*(w+h); label = 'מה ההיקף?';
+        question = 'היקף מלבן'; answer = 2*(w+h); label = 'מה ההיקף?';
       }
     } else if(diff === 'medium') {
       const type = randInt(0,2);
       if(type===0) {
         const base = randInt(4,14), height = randInt(3,10);
-        question = 'שטח משולש\nבסיס='+base+' גובה='+height; answer = (base*height)/2; label = 'מה השטח?';
+        shape = drawTriangle(base,height);
+        question = 'שטח משולש'; answer = (base*height)/2; label = 'מה השטח?';
       } else if(type===1) {
         const side = randInt(3,15);
-        if(randInt(0,1)) { question = 'שטח ריבוע\nצלע='+side; answer = side*side; label = 'מה השטח?'; }
-        else { question = 'היקף ריבוע\nצלע='+side; answer = side*4; label = 'מה ההיקף?'; }
+        shape = drawSquare(side);
+        if(randInt(0,1)) { question = 'שטח ריבוע'; answer = side*side; label = 'מה השטח?'; }
+        else { question = 'היקף ריבוע'; answer = side*4; label = 'מה ההיקף?'; }
       } else {
         const base = randInt(4,12), height = randInt(3,8);
-        question = 'שטח מקבילית\nבסיס='+base+' גובה='+height; answer = base*height; label = 'מה השטח?';
+        shape = drawParallelogram(base,height);
+        question = 'שטח מקבילית'; answer = base*height; label = 'מה השטח?';
       }
     } else {
       if(randInt(0,1)) {
         const a = randInt(4,10), b = randInt(6,14), h = randInt(3,8);
-        question = 'שטח טרפז\nבסיסים='+a+','+b+' גובה='+h; answer = (a+b)*h/2; label = 'מה השטח?';
+        shape = drawTrapezoid(a,b,h);
+        question = 'שטח טרפז'; answer = (a+b)*h/2; label = 'מה השטח?';
       } else {
         const w1 = randInt(3,6), h1 = randInt(5,10), w2 = randInt(3,6), h2 = randInt(2,4);
-        question = 'שטח צורה מורכבת\nמלבן '+w1+'\u00D7'+h1+'\n+ מלבן '+w2+'\u00D7'+h2; answer = w1*h1+w2*h2; label = 'מה השטח הכולל?';
+        shape = drawRect(w1,h1,'מלבן 1') + drawRect(w2,h2,'מלבן 2');
+        question = 'שטח צורה מורכבת'; answer = w1*h1+w2*h2; label = 'מה השטח הכולל?';
       }
     }
     const ansStr = Number.isInteger(answer) ? String(answer) : String(Math.round(answer*10)/10);
@@ -265,7 +317,7 @@ const topicAreaPerimeter = {
     while(wrongs.size < 3) wrongs.add(String(answer + randInt(2,20)));
     const distractors = [...wrongs].filter(w=>w!==ansStr).slice(0,3);
     const opts = shuffle([ansStr, ...distractors]);
-    return { question, qLabel: '📐 הנדסה', aLabel: label, options: opts, correct: ansStr, correctIdx: opts.indexOf(ansStr) };
+    return { question, qLabel: '📐 הנדסה', aLabel: label, options: opts, correct: ansStr, correctIdx: opts.indexOf(ansStr), shape };
   }
 };
 
@@ -918,7 +970,7 @@ export default function App() {
         setScreen('revive');
       }, 1200);
     } else if(!checkRoundEnd(1300)) {
-      feedbackTimer.current = setTimeout(nextQ, 1300);
+      feedbackTimer.current = setTimeout(nextQ, 5000);
     }
   };
 
@@ -1000,7 +1052,7 @@ export default function App() {
           setScreen('revive');
         }, 1200);
       } else if(!checkRoundEnd(1300)) {
-        feedbackTimer.current = setTimeout(nextQ, 1300);
+        feedbackTimer.current = setTimeout(nextQ, 5000);
       }
     }
   };
@@ -1515,6 +1567,10 @@ export default function App() {
                   className="font-black glow-cyan tracking-wide" dir="ltr">
                   {question.question}
                 </div>
+                {/* Geometry Shape Drawing */}
+                {question.shape && (
+                  <div className="flex justify-center mt-3" dangerouslySetInnerHTML={{__html:question.shape}}/>
+                )}
                 {/* Hint Bubble */}
                 {hintVisible && question.topicId && HINTS[question.topicId] && (
                   <div className="hint-bubble pop-in">{HINTS[question.topicId]}</div>
@@ -1576,6 +1632,11 @@ export default function App() {
                       </div>
                     )}
                     <div className="text-xs text-gray-500 mt-2">✅ התשובה הנכונה: <span style={{color:'#00ff88',fontWeight:900,fontSize:'14px'}}>{question.correct}</span></div>
+                    <button onClick={()=>{clearTimeout(feedbackTimer.current);nextQ();}}
+                      className="mt-3 w-full py-2 rounded-xl text-sm font-bold border btn-option"
+                      style={{borderColor:'rgba(255,255,255,0.2)',color:'rgba(255,255,255,0.6)',background:'rgba(255,255,255,0.05)'}}>
+                      המשך ▶
+                    </button>
                   </div>
                 )}
               </div>
