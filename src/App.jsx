@@ -821,11 +821,37 @@ const genQuestion = (diff, selectedTopicIds) => {
   const topic = available.length > 0 ? pick(available) : topicFractions;
   const q = topic.generate(diff);
   q.topicId = topic.id;
-  // Auto-generate solution explanation if not set by topic
-  if(!q.e) {
-    const qClean = q.question.replace(/\n/g, ' ').trim();
-    q.e = qClean + ' = ' + q.correct;
+  // Build step-by-step solution
+  const nums = q.question.match(/[\d.]+/g) || [];
+  const ans = q.correct.replace(/[°%]/g,'');
+  const id = topic.id;
+  if(id==='area') {
+    if(q.question.includes('משולש')) q.solutionSteps = '('+nums[0]+'×'+nums[1]+')÷2 = '+ans;
+    else if(q.question.includes('טרפז')&&nums.length>=3) q.solutionSteps = '('+nums[0]+'+'+nums[1]+')×'+nums[2]+'÷2 = '+ans;
+    else if(q.question.includes('היקף')&&q.question.includes('מלבן')) q.solutionSteps = '2×('+nums[0]+'+'+nums[1]+') = '+ans;
+    else if(q.question.includes('ריבוע')&&q.question.includes('שטח')) q.solutionSteps = nums[0]+'×'+nums[0]+' = '+ans;
+    else if(q.question.includes('ריבוע')&&q.question.includes('היקף')) q.solutionSteps = nums[0]+'×4 = '+ans;
+    else if(q.question.includes('מקבילית')) q.solutionSteps = nums[0]+'×'+nums[1]+' = '+ans;
+    else if(nums.length>=2) q.solutionSteps = nums[0]+'×'+nums[1]+' = '+ans;
+  } else if(id==='angles') {
+    if(q.question.includes('משלימה')) q.solutionSteps = '90° − '+nums[0]+'° = '+ans+'°';
+    else if(q.question.includes('צמודה')||q.question.includes('180')) q.solutionSteps = '180° − '+nums[0]+'° = '+ans+'°';
+    else if(q.question.includes('משולש')&&nums.length>=2) q.solutionSteps = '180° − '+nums[0]+'° − '+nums[1]+'° = '+ans+'°';
+    else if(q.question.includes('מרובע')&&nums.length>=3) q.solutionSteps = '360° − '+nums[0]+'° − '+nums[1]+'° − '+nums[2]+'° = '+ans+'°';
+  } else if(id==='powers'||id==='orderops'||id==='multdiv'||id==='signed') {
+    q.solutionSteps = q.question+' = '+ans;
+  } else if(id==='percent'&&nums.length>=2) {
+    q.solutionSteps = nums[1]+'×'+nums[0]+'÷100 = '+ans;
+  } else if(id==='equations') {
+    q.solutionSteps = 'x = '+ans;
+  } else if(id==='pythagoras'&&nums.length>=2) {
+    q.solutionSteps = '√('+nums[0]+'²+'+nums[1]+'²) = '+ans;
+  } else if(id==='explaws') {
+    q.solutionSteps = q.question.replace('?',ans);
+  } else if(id==='linear'&&nums.length>=2) {
+    q.solutionSteps = q.question.split('\n')[0]+' → '+ans;
   }
+  if(!q.solutionSteps) q.solutionSteps = q.question.replace(/\n/g,' ')+' = '+q.correct;
   return q;
 };
 
@@ -1656,13 +1682,15 @@ export default function App() {
                   {EXPLANATIONS[question.topicId].f}
                 </div>
                 {/* Step-by-step answer */}
+                {question.solutionSteps && (
                 <div className="py-2 px-4 rounded-xl text-center mb-3"
                   style={{background:'rgba(0,229,255,0.08)',border:'1px solid rgba(0,229,255,0.2)'}}>
                   <div className="text-xs text-gray-400 mb-1">פתרון:</div>
-                  <div className="text-base font-bold" dir="ltr" style={{color:'#7dd3fc',fontFamily:"'Orbitron',sans-serif"}}>
-                    {question.e}
+                  <div className="text-base font-bold" dir="ltr" style={{color:'#7dd3fc',fontFamily:"'Orbitron',sans-serif",whiteSpace:'pre-line'}}>
+                    {question.solutionSteps}
                   </div>
                 </div>
+                )}
                 {/* Correct answer */}
                 <div className="text-center text-sm" style={{color:'rgba(255,255,255,0.5)'}}>
                   ✅ התשובה הנכונה: <span style={{color:'#4ade80',fontWeight:900,fontSize:'18px'}}>{question.correct}</span>
