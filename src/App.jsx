@@ -739,11 +739,231 @@ const topicStats = {
   }
 };
 
+// ── Topic 17: Quadratic Equations (Grade 10) ─
+const topicQuadratic = {
+  id: 'quadratic', name: 'משוואה ריבועית', icon: '🔷', color: '#00aaff',
+  generate(diff) {
+    let question, answer, label='x = ?';
+    if(diff==='easy') {
+      // x²=k → x=√k (positive root)
+      const x=randInt(2,9);
+      question='x² = '+(x*x)+'\nמצא x חיובי'; answer=x;
+    } else if(diff==='medium') {
+      // (x-a)(x-b)=0 factored form
+      const x1=randInt(1,8), x2=randInt(1,8);
+      if(x1===x2) return topicQuadratic.generate(diff);
+      question='x² \u2212 '+(x1+x2)+'x + '+(x1*x2)+' = 0\nמצא x הגדול'; answer=Math.max(x1,x2);
+    } else {
+      // ax²+bx+c=0 with discriminant
+      const x1=randInt(-5,5), x2=randInt(-5,5);
+      if(x1===x2) return topicQuadratic.generate(diff);
+      const a=1, b=-(x1+x2), c=x1*x2;
+      const bStr=b>=0?'+ '+b:'\u2212 '+(-b);
+      const cStr=c>=0?'+ '+c:'\u2212 '+(-c);
+      question='x² '+bStr+'x '+cStr+' = 0\nמה סכום הפתרונות?'; answer=x1+x2; label='סכום = ?';
+    }
+    const ansStr=String(answer);
+    const wrongs=new Set();
+    [answer+1,answer-1,answer+2,answer-2,answer*2].forEach(w=>{if(String(w)!==ansStr)wrongs.add(String(w));});
+    while(wrongs.size<3) wrongs.add(String(answer+randInt(-5,5)));
+    const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+    return{question,qLabel:'🔷 משוואה ריבועית',aLabel:label,options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+  }
+};
+
+// ── Topic 18: Parabola / Quadratic Function (Grade 10) ─
+const topicParabola = {
+  id: 'parabola', name: 'פרבולה', icon: '🎯', color: '#ff55aa',
+  generate(diff) {
+    let question, answer, label='מה התשובה?';
+    if(diff==='easy') {
+      // Find vertex x-coordinate: x = -b/(2a)
+      const xv=randInt(-4,4), a=pick([1,-1]);
+      const b=-2*a*xv;
+      const bStr=b>=0?'+ '+b:'\u2212 '+(-b);
+      question='y = '+(a===1?'':'\u2212')+'x² '+bStr+'x\nמה ציר הסימטריה?'; answer=xv; label='x = ?';
+    } else if(diff==='medium') {
+      // y=x²+bx+c, find y when x=k
+      const k=randInt(-3,3), b2=randInt(-4,4), c2=randInt(-5,5);
+      const bStr=b2>=0?'+ '+b2:'\u2212 '+(-b2);
+      const cStr=c2>=0?'+ '+c2:'\u2212 '+(-c2);
+      question='y = x² '+bStr+'x '+cStr+'\nמצא y כאשר x='+k; answer=k*k+b2*k+c2; label='y = ?';
+    } else {
+      // Does parabola open up or down? + discriminant sign
+      const a=pick([1,2,-1,-2]), xv=randInt(-3,3), yv=randInt(-5,5);
+      const dir=a>0?'למעלה':'למטה';
+      question='y = '+(a===1?'':(a===-1?'\u2212':a))+'x² ...\n(a='+(a)+')\nהפרבולה פונה?';
+      const ansStr=dir;
+      const opts=shuffle(['למעלה','למטה','ימינה','שמאלה']);
+      return{question,qLabel:'🎯 פרבולה',aLabel:'לאן פונה?',options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+    }
+    const ansStr=String(answer);
+    const wrongs=new Set();
+    [answer+1,answer-1,answer+2,answer-2,answer*(-1)].forEach(w=>{if(String(w)!==ansStr)wrongs.add(String(w));});
+    while(wrongs.size<3) wrongs.add(String(answer+randInt(-5,5)));
+    const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+    return{question,qLabel:'🎯 פרבולה',aLabel:label,options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+  }
+};
+
+// ── Topic 19: Trigonometry (Grade 10) ───────
+const TRIG_ANGLES = [
+  {deg:30, sin:0.5, cos:0.866, tan:0.577},
+  {deg:45, sin:0.707, cos:0.707, tan:1},
+  {deg:60, sin:0.866, cos:0.5, tan:1.732},
+];
+const topicTrig = {
+  id: 'trig', name: 'טריגונומטריה', icon: '📐', color: '#ff6600',
+  generate(diff) {
+    let question, answer, label='מה התשובה?';
+    if(diff==='easy') {
+      // sin/cos/tan definition with known triangles
+      const ta=pick(TRIG_ANGLES);
+      const func=pick(['sin','cos','tan']);
+      const val=func==='sin'?ta.sin:func==='cos'?ta.cos:ta.tan;
+      question=func+'('+ta.deg+'°) = ?';
+      answer=val; label='מה הערך?';
+      const ansStr=String(answer);
+      const wrongs=new Set();
+      TRIG_ANGLES.forEach(a2=>{
+        [a2.sin,a2.cos,a2.tan].forEach(v=>{
+          if(String(v)!==ansStr) wrongs.add(String(v));
+        });
+      });
+      while(wrongs.size<3) wrongs.add(String(Math.round(Math.random()*1000)/1000));
+      const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+      return{question,qLabel:'📐 טריגונומטריה',aLabel:label,options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+    } else if(diff==='medium') {
+      // Find side using sin/cos/tan: given hypotenuse and angle
+      const ta=pick(TRIG_ANGLES);
+      const hyp=pick([10,20,12,8,6]);
+      if(randInt(0,1)) {
+        // opposite = hyp * sin(angle)
+        const opp=Math.round(hyp*ta.sin*10)/10;
+        question='במשולש ישר זווית:\nיתר='+hyp+' זווית='+ta.deg+'°\nמה הניצב שמול?';
+        answer=opp; label='אורך הניצב?';
+      } else {
+        // adjacent = hyp * cos(angle)
+        const adj=Math.round(hyp*ta.cos*10)/10;
+        question='במשולש ישר זווית:\nיתר='+hyp+' זווית='+ta.deg+'°\nמה הניצב שליד?';
+        answer=adj; label='אורך הניצב?';
+      }
+    } else {
+      // Find angle given two sides
+      const ta=pick(TRIG_ANGLES);
+      const mult=pick([2,3,4,5]);
+      const opp=Math.round(ta.sin*mult*10);
+      const hyp=mult*10;
+      question='במשולש ישר זווית:\nניצב שמול='+opp+'\nיתר='+hyp+'\nמה הזווית?';
+      answer=ta.deg; label='כמה מעלות?';
+      const ansStr=answer+'°';
+      const wrongs=new Set();
+      TRIG_ANGLES.forEach(a2=>{if(a2.deg!==answer)wrongs.add(a2.deg+'°');});
+      wrongs.add((answer+15)+'°'); wrongs.add((90-answer)+'°');
+      while(wrongs.size<3) wrongs.add(randInt(20,70)+'°');
+      const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+      return{question,qLabel:'📐 טריגונומטריה',aLabel:label,options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+    }
+    const ansStr=String(answer);
+    const wrongs=new Set();
+    [answer+1,answer-1,answer+0.5,answer-0.5,answer*2].forEach(w=>{
+      const ws=String(Math.round(w*10)/10);
+      if(ws!==ansStr&&w>0)wrongs.add(ws);
+    });
+    while(wrongs.size<3) wrongs.add(String(Math.round((answer+randInt(1,5))*10)/10));
+    const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+    return{question,qLabel:'📐 טריגונומטריה',aLabel:label,options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+  }
+};
+
+// ── Topic 20: Arithmetic Sequences (Grade 10) ─
+const topicSequences = {
+  id: 'sequences', name: 'סדרות חשבוניות', icon: '🔢', color: '#11ccaa',
+  generate(diff) {
+    let question, answer, label='מה התשובה?';
+    if(diff==='easy') {
+      // Find next term: a, a+d, a+2d, ?
+      const a1=randInt(1,10), d=randInt(2,6);
+      question=a1+', '+(a1+d)+', '+(a1+2*d)+', ?\nמה האיבר הבא?'; answer=a1+3*d;
+    } else if(diff==='medium') {
+      // Find nth term: a_n = a1 + (n-1)*d
+      const a1=randInt(1,8), d=randInt(2,5), n=randInt(5,10);
+      question='a₁='+a1+' d='+d+'\nמה a'+n+'?'; answer=a1+(n-1)*d; label='a'+n+' = ?';
+    } else {
+      // Sum of first n terms: S = n/2 * (2a1 + (n-1)*d)
+      const a1=randInt(1,5), d=randInt(1,4), n=pick([5,6,8,10]);
+      const sum=n*(2*a1+(n-1)*d)/2;
+      question='a₁='+a1+' d='+d+'\nמה סכום '+n+' איברים ראשונים?'; answer=sum; label='S = ?';
+    }
+    const ansStr=String(answer);
+    const wrongs=new Set();
+    [answer+randInt(1,5),answer-randInt(1,5),answer+randInt(3,10),answer*2].forEach(w=>{if(String(w)!==ansStr&&w>0)wrongs.add(String(w));});
+    while(wrongs.size<3) wrongs.add(String(answer+randInt(1,15)));
+    const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+    return{question,qLabel:'🔢 סדרות',aLabel:label,options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+  }
+};
+
+// ── Topic 21: Probability (Grade 10) ────────
+const topicProbability = {
+  id: 'probability', name: 'הסתברות', icon: '🎲', color: '#ffcc00',
+  generate(diff) {
+    let question, answer, label='מה ההסתברות?';
+    if(diff==='easy') {
+      // Simple probability: dice or coins
+      const type=randInt(0,2);
+      if(type===0) {
+        const target=randInt(1,6);
+        question='בהטלת קובייה:\nמה ההסתברות לקבל '+target+'?';
+        answer='1/6';
+        const opts=shuffle(['1/6','1/3','1/2','2/6']);
+        return{question,qLabel:'🎲 הסתברות',aLabel:label,options:opts,correct:answer,correctIdx:opts.indexOf(answer)};
+      } else if(type===1) {
+        question='בהטלת מטבע:\nמה ההסתברות לקבל עץ?';
+        answer='1/2';
+        const opts=shuffle(['1/2','1/4','1/3','2/3']);
+        return{question,qLabel:'🎲 הסתברות',aLabel:label,options:opts,correct:answer,correctIdx:opts.indexOf(answer)};
+      } else {
+        const even=3;
+        question='בהטלת קובייה:\nמה ההסתברות לזוגי?';
+        answer='1/2';
+        const opts=shuffle(['1/2','1/3','1/6','2/3']);
+        return{question,qLabel:'🎲 הסתברות',aLabel:label,options:opts,correct:answer,correctIdx:opts.indexOf(answer)};
+      }
+    } else if(diff==='medium') {
+      // Drawing balls from bag
+      const total=pick([8,10,12,15,20]);
+      const red=randInt(2,total-2);
+      const g2=gcd(red,total);
+      const ansStr=(red/g2)+'/'+(total/g2);
+      question='בשקית '+total+' כדורים:\n'+red+' אדומים\nמה ההסתברות לאדום?';
+      const wrongs=new Set();
+      [[red+1,total],[red-1,total],[red,total+2],[total-red,total]].forEach(([n,d])=>{
+        if(n>0&&n<d){const g3=gcd(n,d);wrongs.add((n/g3)+'/'+(d/g3));}
+      });
+      while(wrongs.size<3) wrongs.add(randInt(1,total-1)+'/'+total);
+      const opts=shuffle([ansStr,...[...wrongs].filter(w=>w!==ansStr).slice(0,3)]);
+      return{question,qLabel:'🎲 הסתברות',aLabel:label,options:opts,correct:ansStr,correctIdx:opts.indexOf(ansStr)};
+    } else {
+      // Complement: P(not A) = 1 - P(A)
+      const p=pick([10,20,25,30,40,60,75]);
+      question='הסתברות לגשם: '+p+'%\nמה ההסתברות שלא ירד גשם?';
+      const answer2=(100-p)+'%';
+      const wrongs=new Set();
+      [p+'%',(100-p+10)+'%',(100-p-10)+'%',(p+5)+'%'].forEach(w=>{if(w!==answer2&&parseInt(w)>0&&parseInt(w)<=100)wrongs.add(w);});
+      while(wrongs.size<3) wrongs.add(randInt(10,90)+'%');
+      const opts=shuffle([answer2,...[...wrongs].filter(w=>w!==answer2).slice(0,3)]);
+      return{question,qLabel:'🎲 הסתברות',aLabel:'כמה אחוז?',options:opts,correct:answer2,correctIdx:opts.indexOf(answer2)};
+    }
+  }
+};
+
 // ── All Topics ───────────────────────────────
 const ALL_TOPICS = [
   topicFractions, topicOrderOps, topicAreaPerimeter, topicAngles, topicPowers, topicRatio,
   topicMultDiv, topicSimpleFrac, topicSigned, topicEquations, topicPercent,
-  topicAlgebra, topicPythagoras, topicLinearFunc, topicExpLaws, topicStats
+  topicAlgebra, topicPythagoras, topicLinearFunc, topicExpLaws, topicStats,
+  topicQuadratic, topicParabola, topicTrig, topicSequences, topicProbability
 ];
 
 // ── Grade → Topics Map ───────────────────────
@@ -754,6 +974,7 @@ const GRADES = {
   7: { label:'כיתה ז׳', topics:['signed','equations','percent','powers','ratio'] },
   8: { label:'כיתה ח׳', topics:['algebra','equations','pythagoras','area','angles'] },
   9: { label:'כיתה ט׳', topics:['linear','explaws','stats','equations','percent'] },
+  10: { label:'כיתה י׳', topics:['quadratic','parabola','trig','sequences','probability'] },
 };
 
 // ── Hints per Topic ──────────────────────────
@@ -774,6 +995,11 @@ const HINTS = {
   linear:'💡 y = mx + b → m=שיפוע, b=חיתוך עם y',
   explaws:'💡 כפל=חיבור חזקות, חילוק=חיסור, חזקת חזקה=כפל!',
   stats:'💡 ממוצע=סכום÷כמות, חציון=אמצעי, שכיח=הכי נפוץ',
+  quadratic:'💡 נוסחת השורשים: x=(-b±√Δ)/2a, כאשר Δ=b²-4ac',
+  parabola:'💡 a>0 פונה למעלה, a<0 למטה. קודקוד: x=-b/2a',
+  trig:'💡 sin=נגד/יתר, cos=ליד/יתר, tan=נגד/ליד',
+  sequences:'💡 aₙ=a₁+(n-1)d, סכום: S=n(a₁+aₙ)/2',
+  probability:'💡 הסתברות = מקרים רצויים ÷ כל המקרים',
 };
 
 // ── Explanations per Topic ───────────────────
@@ -794,6 +1020,11 @@ const EXPLANATIONS = {
   linear:{t:'פונקציה קווית',f:'y = mx + b',b:'m=שיפוע (כמה עולה), b=חיתוך'},
   explaws:{t:'חוקי חזקות',f:'aⁿ×aᵐ=aⁿ⁺ᵐ, aⁿ÷aᵐ=aⁿ⁻ᵐ',b:'(aⁿ)ᵐ = aⁿˣᵐ'},
   stats:{t:'סטטיסטיקה',f:'ממוצע = סכום ÷ כמות',b:'חציון = הערך האמצעי, שכיח = הכי נפוץ'},
+  quadratic:{t:'משוואה ריבועית',f:'ax²+bx+c=0 → x=(-b±√Δ)/2a',b:'Δ=b²-4ac: חיובי=2 פתרונות, 0=אחד, שלילי=אין'},
+  parabola:{t:'פרבולה',f:'y=ax²+bx+c',b:'קודקוד: x=-b/2a, a>0=חיוך, a<0=עצב'},
+  trig:{t:'טריגונומטריה',f:'sin=נגד÷יתר, cos=ליד÷יתר',b:'tan=sin/cos, sin²+cos²=1'},
+  sequences:{t:'סדרות חשבוניות',f:'aₙ = a₁+(n-1)×d',b:'S = n×(a₁+aₙ)÷2'},
+  probability:{t:'הסתברות',f:'P(A) = רצויים÷כולם',b:'P(לא A) = 1-P(A), 0≤P≤1'},
 };
 
 // ── Character Messages ───────────────────────
@@ -850,6 +1081,16 @@ const genQuestion = (diff, selectedTopicIds) => {
     q.solutionSteps = q.question.replace('?',ans);
   } else if(id==='linear'&&nums.length>=2) {
     q.solutionSteps = q.question.split('\n')[0]+' → '+ans;
+  } else if(id==='quadratic') {
+    q.solutionSteps = q.question.split('\n')[0]+' → '+q.correct;
+  } else if(id==='parabola') {
+    q.solutionSteps = q.question.split('\n')[0]+' → '+q.correct;
+  } else if(id==='trig') {
+    q.solutionSteps = q.question.split('\n')[0]+' → '+q.correct;
+  } else if(id==='sequences') {
+    q.solutionSteps = q.question.split('\n')[0]+' → '+q.correct;
+  } else if(id==='probability') {
+    q.solutionSteps = 'P = '+q.correct;
   }
   if(!q.solutionSteps) q.solutionSteps = q.question.replace(/\n/g,' ')+' = '+q.correct;
   return q;
