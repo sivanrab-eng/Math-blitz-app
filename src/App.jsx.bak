@@ -1105,104 +1105,6 @@ const persistBoard = (b) => {
   try { localStorage.setItem('math-blitz-lb', JSON.stringify(b)); } catch {}
 };
 
-// ── Percentile Calculator (simulated distribution) ─
-const getPercentile = (score) => {
-  // Realistic distribution: most players score 50-200, good ones 300-600, great ones 800+
-  if(score <= 0) return 5;
-  // Sigmoid-like mapping for realistic feel
-  const x = score / 400; // normalize
-  const p = Math.round(100 / (1 + Math.exp(-2.5 * (x - 0.8))));
-  return Math.max(5, Math.min(99, p));
-};
-
-const getPercentileMsg = (pct) => {
-  if(pct >= 95) return { text: 'אתה בטופ 5%! אלוף מתמטיקה! 👑', color: '#fbbf24' };
-  if(pct >= 85) return { text: 'חכם יותר מ-'+pct+'% מהשחקנים! 🧠', color: '#00ff88' };
-  if(pct >= 70) return { text: 'טוב יותר מ-'+pct+'% מהשחקנים! 💪', color: '#00e5ff' };
-  if(pct >= 50) return { text: 'עברת את ה-'+pct+'% מהשחקנים! 📈', color: '#ffaa00' };
-  return { text: 'כל משחק משפר אותך! 🚀', color: '#ff0080' };
-};
-
-// ── Daily Streak System ─────────────────────
-const loadDailyStreak = () => {
-  try {
-    const raw = localStorage.getItem('math-blitz-streak');
-    if(!raw) return { current: 0, longest: 0, lastDate: null };
-    return JSON.parse(raw);
-  } catch { return { current: 0, longest: 0, lastDate: null }; }
-};
-
-const updateDailyStreak = () => {
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const s = loadDailyStreak();
-  if(s.lastDate === today) return s; // already played today
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  let newCurrent;
-  if(s.lastDate === yesterday) {
-    newCurrent = s.current + 1; // streak continues!
-  } else {
-    newCurrent = 1; // streak broken or first time
-  }
-  const newLongest = Math.max(s.longest, newCurrent);
-  const result = { current: newCurrent, longest: newLongest, lastDate: today };
-  try { localStorage.setItem('math-blitz-streak', JSON.stringify(result)); } catch {}
-  return result;
-};
-
-const getStreakStatus = () => {
-  const s = loadDailyStreak();
-  const today = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  if(s.lastDate === today) return { ...s, playedToday: true, atRisk: false };
-  if(s.lastDate === yesterday) return { ...s, playedToday: false, atRisk: true }; // streak at risk!
-  return { current: 0, longest: s.longest, lastDate: s.lastDate, playedToday: false, atRisk: false };
-};
-
-// ── Particle / Confetti Explosion ───────────
-const playBigCorrect = () => {
-  try {
-    const c = actx();
-    // Sparkle chord: C-E-G-C
-    [523, 659, 784, 1047, 1319].forEach((freq, i) => {
-      const o = c.createOscillator(), g = c.createGain();
-      o.connect(g); g.connect(c.destination); o.type = 'sine';
-      o.frequency.setValueAtTime(freq, c.currentTime + i * 0.05);
-      g.gain.setValueAtTime(0.12, c.currentTime + i * 0.05);
-      g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + i * 0.05 + 0.4);
-      o.start(c.currentTime + i * 0.05); o.stop(c.currentTime + i * 0.05 + 0.4);
-    });
-    if(navigator.vibrate) navigator.vibrate([30, 20, 30]);
-  } catch(e){}
-};
-
-const spawnParticles = (container, count, colors) => {
-  if(!container) return;
-  const rect = container.getBoundingClientRect();
-  const cx = rect.width / 2, cy = rect.height / 2;
-  for(let i = 0; i < count; i++) {
-    const p = document.createElement('div');
-    const size = 4 + Math.random() * 8;
-    const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
-    const dist = 60 + Math.random() * 120;
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    const isCircle = Math.random() > 0.4;
-    p.style.cssText = `
-      position:absolute;left:${cx}px;top:${cy}px;width:${size}px;height:${size}px;
-      background:${color};border-radius:${isCircle?'50%':'2px'};pointer-events:none;z-index:100;
-      transform:translate(-50%,-50%) rotate(${Math.random()*360}deg);
-      box-shadow:0 0 6px ${color};
-    `;
-    container.appendChild(p);
-    const tx = Math.cos(angle) * dist, ty = Math.sin(angle) * dist - 30;
-    p.animate([
-      { transform: 'translate(-50%,-50%) scale(0)', opacity: 1 },
-      { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(1) rotate(${Math.random()*720}deg)`, opacity: 1, offset: 0.4 },
-      { transform: `translate(calc(-50% + ${tx*1.2}px), calc(-50% + ${ty + 80}px)) scale(0.3)`, opacity: 0 }
-    ], { duration: 700 + Math.random() * 400, easing: 'cubic-bezier(0,.7,.3,1)', fill: 'forwards' })
-    .onfinish = () => p.remove();
-  }
-};
-
 // ── Main Component ───────────────────────────
 export default function App() {
   const [screen,setScreen] = useState('menu');
@@ -1238,7 +1140,6 @@ export default function App() {
   const [unlockedAch,setUnlockedAch] = useState({});
   const [playerName,setPlayerName] = useState(()=>{ try{return localStorage.getItem('math-blitz-name')||'';}catch{return '';} });
   const [totalCorrect,setTotalCorrect] = useState(0);
-  const [streakMilestone,setStreakMilestone] = useState(null);
   const [showPrize,setShowPrize] = useState(false);
   const [prizePoints,setPrizePoints] = useState(0);
   const [savedGame,setSavedGame] = useState(()=>{ try{const s=localStorage.getItem('math-blitz-save');return s?JSON.parse(s):null;}catch{return null;} });
@@ -1271,7 +1172,7 @@ export default function App() {
 
   const startGame = () => {
     setDuelMode(false);
-    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics],totalCorrect:0,totalStreak:0};
+    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics],totalCorrect:0};
     setScore(0); setStreak(0); setMaxStreak(0); setAnswered(0);
     setLives(START_LIVES); setInvitesUsed(0); setAdsUsed(0); setTotalCorrect(0);
     setRoundNum(1); setRoundCorrect(0); setGainedLife(false);
@@ -1320,7 +1221,7 @@ export default function App() {
     setShaking(true);
     setTimeout(()=>setShaking(false),400);
     const g = gs.current;
-    g.streak = 0; g.totalStreak = 0; g.wrongStreak++; g.answered++;
+    g.streak = 0; g.wrongStreak++; g.answered++;
     if(g.wrongStreak >= 3) {
       g.dur = Math.min(g.dur*1.1,12); g.wrongStreak=0;
       if(g.diff==='hard') g.diff='medium';
@@ -1372,7 +1273,6 @@ export default function App() {
       g.streak++; g.wrongStreak = 0;
       g.roundCorrect++;
       g.totalCorrect = (g.totalCorrect||0) + 1;
-      g.totalStreak = (g.totalStreak||0) + 1;
       if(g.streak > g.maxStreak) g.maxStreak = g.streak;
       g.dur = Math.max(g.dur * 0.95, 10);
       if(g.streak >= 5 && g.diff==='easy') { g.diff='medium'; g.streak=0; }
@@ -1394,13 +1294,7 @@ export default function App() {
       setCombo(combos[Math.min(g.streak, combos.length-1)] || '\u{1F525}');
       setScore(g.score); setStreak(g.streak); setMaxStreak(g.maxStreak); setAnswered(g.answered); setRoundCorrect(g.roundCorrect); setTotalCorrect(g.totalCorrect);
       checkAchievements({score:g.score,streak:g.streak,totalCorrect:g.totalCorrect,answered:g.answered});
-      // Streak milestone popup every 5
-      if(g.totalStreak > 0 && g.totalStreak % 5 === 0) {
-        feedbackTimer.current = setTimeout(() => {
-          cancelAnimationFrame(rafRef.current);
-          setStreakMilestone(g.totalStreak);
-        }, 800);
-      } else if(!checkRoundEnd(800)) {
+      if(!checkRoundEnd(800)) {
         feedbackTimer.current = setTimeout(nextQ, 800);
       }
     } else {
@@ -1411,7 +1305,7 @@ export default function App() {
       setHintVisible(false);
       setShaking(true);
       setTimeout(()=>setShaking(false),400);
-      g.streak = 0; g.totalStreak = 0; g.wrongStreak++;
+      g.streak = 0; g.wrongStreak++;
       if(g.wrongStreak >= 3) {
         g.dur = Math.min(g.dur*1.1,12); g.wrongStreak=0;
         if(g.diff==='hard') g.diff='medium';
@@ -1533,19 +1427,6 @@ export default function App() {
     window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
   };
 
-  const shareStreakWhatsApp = (num) => {
-    const name = playerName || 'שחקן';
-    const emojis = {5:'\u{1F525}',10:'\u26A1',15:'\u{1F4A5}',20:'\u{1F680}',25:'\u{1F31F}'};
-    const e = emojis[num] || '\u{1F525}';
-    const txt = e+' '+name+' \u05E2\u05E9\u05D4 '+num+' \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05E0\u05DB\u05D5\u05E0\u05D5\u05EA \u05D1\u05E8\u05E6\u05E3! '+e+'\n\n\u05D7\u05D5\u05E9\u05D1 \u05E9\u05EA\u05D5\u05DB\u05DC \u05DC\u05E2\u05E7\u05D5\u05E3 \u05D0\u05D5\u05EA\u05D9 \u{1F609}?\n\n\u05E9\u05D7\u05E7 \u05E2\u05DB\u05E9\u05D9\u05D5:\nhttps://sivanrab-eng.github.io/Math-blitz-app/';
-    window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
-  };
-
-  const shareMenuWhatsApp = () => {
-    const txt = '\u{1F9E0}\u26A1 \u05DE\u05EA\u05DE\u05D8\u05D9\u05E7\u05D4 \u05D1\u05DC\u05D9\u05D9\u05D6 \u26A1\u{1F9E0}\n\n\u05DE\u05E9\u05D7\u05E7 \u05DE\u05EA\u05DE\u05D8\u05D9\u05E7\u05D4 \u05DE\u05D8\u05D5\u05E8\u05E3! \u{1F525}\n\u05EA\u05E0\u05E1\u05D4 \u05DC\u05E0\u05E6\u05D7 \u05D0\u05D5\u05EA\u05D9 \u{1F60F}\n\nhttps://sivanrab-eng.github.io/Math-blitz-app/';
-    window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
-  };
-
   const changeGrade = (g) => {
     setGrade(g);
     const gradeTopics = GRADES[g].topics;
@@ -1620,7 +1501,7 @@ export default function App() {
     const s = savedGame;
     gs.current = {score:s.score,streak:s.streak,maxStreak:s.maxStreak,wrongStreak:0,diff:s.diff,dur:s.dur,
       answered:s.answered,lives:s.lives,invitesUsed:0,roundCorrect:s.roundCorrect,adsUsed:0,
-      selectedTopics:s.selectedTopics,totalCorrect:s.totalCorrect||0,totalStreak:s.streak||0};
+      selectedTopics:s.selectedTopics,totalCorrect:s.totalCorrect||0};
     setScore(s.score); setStreak(s.streak); setMaxStreak(s.maxStreak); setAnswered(s.answered);
     setLives(s.lives); setRoundNum(s.roundNum||1); setRoundCorrect(s.roundCorrect);
     setTotalCorrect(s.totalCorrect||0); setGrade(s.grade||6);
@@ -1657,7 +1538,7 @@ export default function App() {
     setDuelPlayer(1);
     setDuelScore1(0);
     gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,
-      lives:99,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics],totalCorrect:0,totalStreak:0};
+      lives:99,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics],totalCorrect:0};
     setScore(0); setStreak(0); setMaxStreak(0); setAnswered(0); setLives(99);
     setTotalCorrect(0); setFeedback(null); setSelIdx(null); setCombo('');
     setScreen('playing');
@@ -1682,7 +1563,7 @@ export default function App() {
 
   const startDuelPlayer2 = () => {
     gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,
-      lives:99,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics],totalCorrect:0,totalStreak:0};
+      lives:99,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics],totalCorrect:0};
     setScore(0); setStreak(0); setMaxStreak(0); setAnswered(0); setLives(99);
     setTotalCorrect(0); setFeedback(null); setSelIdx(null); setCombo('');
     setScreen('playing');
@@ -1861,12 +1742,6 @@ export default function App() {
               style={{borderColor:'#ff0080',color:'#ff0080',background:'rgba(255,0,128,0.06)',animationDelay:'0.2s'}}>
               טבלת שיאים 🏆
             </button>
-            <button onClick={shareMenuWhatsApp}
-              className="w-64 py-3 rounded-2xl text-lg font-bold border-2 btn-option slide-up flex items-center justify-center gap-2"
-              style={{borderColor:'#25D366',color:'#25D366',background:'rgba(37,211,102,0.08)',animationDelay:'0.22s',boxShadow:'0 0 15px rgba(37,211,102,0.2)'}}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-              הזמן חברים לשחק 📲
-            </button>
             <p className="text-xs text-gray-600 mt-1 slide-up" style={{animationDelay:'0.25s'}}>{GRADES[grade].label} • מתמטיקה והנדסה</p>
           </div>
         )}
@@ -2041,38 +1916,6 @@ export default function App() {
               style={{borderColor:'rgba(255,255,255,0.3)',color:'#fff',background:'rgba(255,255,255,0.08)'}}>
               המשך ▶
             </button>
-          </div>
-        )}
-
-        {/* ── STREAK MILESTONE POPUP ───── */}
-        {streakMilestone && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-5"
-            style={{background:'rgba(0,0,0,0.75)',backdropFilter:'blur(4px)'}}>
-            <div className="w-full max-w-xs rounded-3xl px-6 py-7 text-center pop-in"
-              style={{background:'rgba(10,10,40,0.97)',border:'2px solid rgba(0,229,255,0.3)',
-                boxShadow:'0 0 60px rgba(0,229,255,0.15), 0 0 120px rgba(255,0,128,0.08)'}}>
-              <div className="text-6xl mb-2" style={{filter:'drop-shadow(0 0 20px rgba(255,170,0,0.5))'}}>
-                {streakMilestone>=25?'\u{1F31F}':streakMilestone>=20?'\u{1F680}':streakMilestone>=15?'\u{1F4A5}':streakMilestone>=10?'\u26A1':'\u{1F525}'}
-              </div>
-              <div className="text-3xl font-black mb-1 glow-cyan" style={{fontFamily:"'Orbitron',sans-serif",color:'#00e5ff'}}>
-                {streakMilestone} ברצף!
-              </div>
-              <div className="text-base font-bold mb-5" style={{color:'#e2e8f0',lineHeight:1.5}}>
-                חושב שתוכל לעקוף אותי {'\u{1F609}'}?
-              </div>
-              <button onClick={()=>shareStreakWhatsApp(streakMilestone)}
-                className="w-full py-3.5 rounded-2xl text-base font-black border-2 btn-option mb-3 flex items-center justify-center gap-2"
-                style={{borderColor:'#25D366',color:'#25D366',background:'rgba(37,211,102,0.12)',
-                  boxShadow:'0 0 20px rgba(37,211,102,0.2)'}}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                שתף בוואטסאפ ⚔️
-              </button>
-              <button onClick={()=>{setStreakMilestone(null);if(!checkRoundEnd(0)){nextQ();}}}
-                className="w-full py-3 rounded-2xl text-base font-black border-2 glow-box-cyan btn-option"
-                style={{borderColor:'#00e5ff',color:'#00e5ff',background:'rgba(0,229,255,0.08)'}}>
-                המשך לשחק ▶
-              </button>
-            </div>
           </div>
         )}
 
