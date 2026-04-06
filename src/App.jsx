@@ -33,19 +33,6 @@ const playCorrect = () => {
   } catch(e){}
 };
 
-const playWrong = () => {
-  try {
-    const c = actx(), o = c.createOscillator(), g = c.createGain();
-    o.connect(g); g.connect(c.destination); o.type='sawtooth';
-    o.frequency.setValueAtTime(200,c.currentTime);
-    o.frequency.linearRampToValueAtTime(100,c.currentTime+0.25);
-    g.gain.setValueAtTime(0.18,c.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.3);
-    o.start(c.currentTime); o.stop(c.currentTime+0.3);
-    if(navigator.vibrate) navigator.vibrate(120);
-  } catch(e){}
-};
-
 const playTick = () => {
   try {
     const c = actx(), o = c.createOscillator(), g = c.createGain();
@@ -1316,7 +1303,6 @@ export default function App() {
 
   const handleTimeout = () => {
     cancelAnimationFrame(rafRef.current);
-    playWrong();
     setFeedback('timeout');
     setShaking(true);
     setTimeout(()=>setShaking(false),400);
@@ -1405,7 +1391,6 @@ export default function App() {
         feedbackTimer.current = setTimeout(nextQ, 800);
       }
     } else {
-      playWrong();
       const nearMiss = isNearMiss(question, idx);
       setFeedback(nearMiss ? 'close' : 'wrong');
       charReact(nearMiss ? 'close' : 'wrong', 0);
