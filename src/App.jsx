@@ -1197,7 +1197,7 @@ export default function App() {
   const [streak,setStreak] = useState(0);
   const [maxStreak,setMaxStreak] = useState(0);
   const [question,setQuestion] = useState(null);
-  const [timeLeft,setTimeLeft] = useState(10);
+  const [timeLeft,setTimeLeft] = useState(20);
   const [feedback,setFeedback] = useState(null);
   const [selIdx,setSelIdx] = useState(null);
   const [board,setBoard] = useState([]);
@@ -1237,7 +1237,7 @@ export default function App() {
   const [duelScore1,setDuelScore1] = useState(0);
   const [duelQCount] = useState(5);
 
-  const gs = useRef({score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0});
+  const gs = useRef({score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:20,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0});
   const endTimeRef = useRef(0);
   const rafRef = useRef(null);
   const feedbackTimer = useRef(null);
@@ -1259,7 +1259,7 @@ export default function App() {
 
   const startGame = () => {
     setDuelMode(false);
-    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics],totalCorrect:0,totalStreak:0};
+    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:20,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics],totalCorrect:0,totalStreak:0};
     setScore(0); setStreak(0); setMaxStreak(0); setAnswered(0);
     setLives(START_LIVES); setInvitesUsed(0); setAdsUsed(0); setTotalCorrect(0);
     setRoundNum(1); setRoundCorrect(0); setGainedLife(false);
@@ -1309,7 +1309,7 @@ export default function App() {
     const g = gs.current;
     g.streak = 0; g.totalStreak = 0; g.wrongStreak++; g.answered++;
     if(g.wrongStreak >= 3) {
-      g.dur = Math.min(g.dur*1.1,12); g.wrongStreak=0;
+      g.dur = Math.min(g.dur*1.1,24); g.wrongStreak=0;
       if(g.diff==='hard') g.diff='medium';
       else if(g.diff==='medium') g.diff='easy';
     }
@@ -1399,7 +1399,7 @@ export default function App() {
       setTimeout(()=>setShaking(false),400);
       g.streak = 0; g.totalStreak = 0; g.wrongStreak++;
       if(g.wrongStreak >= 3) {
-        g.dur = Math.min(g.dur*1.1,12); g.wrongStreak=0;
+        g.dur = Math.min(g.dur*1.1,24); g.wrongStreak=0;
         if(g.diff==='hard') g.diff='medium';
         else if(g.diff==='medium') g.diff='easy';
       }
@@ -1642,7 +1642,7 @@ export default function App() {
     setDuelMode(true);
     setDuelPlayer(1);
     setDuelScore1(0);
-    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,
+    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:20,answered:0,
       lives:99,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics],totalCorrect:0,totalStreak:0};
     setScore(0); setStreak(0); setMaxStreak(0); setAnswered(0); setLives(99);
     setTotalCorrect(0); setFeedback(null); setSelIdx(null); setCombo('');
@@ -1667,7 +1667,7 @@ export default function App() {
   };
 
   const startDuelPlayer2 = () => {
-    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:10,answered:0,
+    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:20,answered:0,
       lives:99,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics],totalCorrect:0,totalStreak:0};
     setScore(0); setStreak(0); setMaxStreak(0); setAnswered(0); setLives(99);
     setTotalCorrect(0); setFeedback(null); setSelIdx(null); setCombo('');
@@ -1818,7 +1818,7 @@ export default function App() {
               <div className="flex items-center gap-1">
                 <span>❤️×{START_LIVES}</span>
                 <span className="text-gray-600 mx-1">•</span>
-                <span>⏱ 10 שניות</span>
+                <span>⏱ 20 שניות</span>
                 <span className="text-gray-600 mx-1">•</span>
                 <span>{ROUND_SIZE} שאלות בסיבוב</span>
               </div>
