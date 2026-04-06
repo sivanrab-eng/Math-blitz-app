@@ -1242,6 +1242,7 @@ export default function App() {
   const [showPrize,setShowPrize] = useState(false);
   const [prizePoints,setPrizePoints] = useState(0);
   const [savedGame,setSavedGame] = useState(()=>{ try{const s=localStorage.getItem('math-blitz-save');return s?JSON.parse(s):null;}catch{return null;} });
+  const [showResumeModal,setShowResumeModal] = useState(false);
   const [duelMode,setDuelMode] = useState(false);
   const [duelPlayer,setDuelPlayer] = useState(1);
   const [duelName1,setDuelName1] = useState('');
@@ -1839,18 +1840,11 @@ export default function App() {
               <div className="text-xs text-gray-500">{LIFE_EARN_STREAK} נכונות ברצף = +❤️ בונוס (עד {MAX_LIVES})</div>
             </div>
 
-            <button onClick={startGame}
+            <button onClick={()=>{ if(savedGame) setShowResumeModal(true); else startGame(); }}
               className="w-64 py-4 rounded-2xl text-xl font-black border-2 glow-box-cyan btn-option slide-up"
               style={{borderColor:'#00e5ff',color:'#00e5ff',background:'rgba(0,229,255,0.08)',animationDelay:'0.15s'}}>
               התחל משחק ⚡
             </button>
-            {savedGame && (
-              <button onClick={resumeGame}
-                className="w-64 py-3 rounded-2xl text-lg font-bold border-2 btn-option slide-up"
-                style={{borderColor:'#00ff88',color:'#00ff88',background:'rgba(0,255,136,0.08)',animationDelay:'0.17s',boxShadow:'0 0 12px rgba(0,255,136,0.2)'}}>
-                ▶️ המשך משחק ({savedGame.score} נק׳)
-              </button>
-            )}
             <button onClick={()=>setScreen('duelSetup')}
               className="w-64 py-3 rounded-2xl text-lg font-bold border-2 btn-option slide-up"
               style={{borderColor:'#ff4444',color:'#ff4444',background:'rgba(255,68,68,0.08)',animationDelay:'0.18s',boxShadow:'0 0 12px rgba(255,68,68,0.2)'}}>
@@ -2381,6 +2375,34 @@ export default function App() {
             <button onClick={()=>{setDuelMode(false);setScreen('menu');}} className="text-sm text-gray-500 btn-option">תפריט ראשי</button>
           </div>);
         })()}
+
+        {/* ── RESUME MODAL ─────────────── */}
+        {showResumeModal && savedGame && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(5,5,16,0.92)'}}
+            onClick={()=>setShowResumeModal(false)}>
+            <div className="pop-in text-center px-6 py-8 rounded-3xl max-w-xs w-full mx-4"
+              style={{background:'linear-gradient(135deg,rgba(20,15,40,0.98),rgba(10,8,25,0.98))',border:'2px solid rgba(0,229,255,0.25)',boxShadow:'0 0 40px rgba(0,229,255,0.15)'}}
+              onClick={e=>e.stopPropagation()}>
+              <div style={{fontSize:'2.5rem',lineHeight:1}} className="mb-3">⏸️</div>
+              <p className="text-lg font-bold mb-1" style={{color:'#00e5ff',fontFamily:"'Heebo',sans-serif"}}>נמצא משחק שמור!</p>
+              <p className="text-sm text-gray-400 mb-6" style={{fontFamily:"'Heebo',sans-serif"}}>
+                {savedGame.score} נקודות • סיבוב {savedGame.roundNum||1}
+              </p>
+              <div className="flex flex-col gap-3">
+                <button onClick={()=>{setShowResumeModal(false);resumeGame();}}
+                  className="w-full py-3.5 rounded-2xl text-lg font-bold border-2 btn-option"
+                  style={{borderColor:'#00ff88',color:'#00ff88',background:'rgba(0,255,136,0.08)',boxShadow:'0 0 12px rgba(0,255,136,0.2)'}}>
+                  ▶️ המשך מאיפה שעצרת
+                </button>
+                <button onClick={()=>{setShowResumeModal(false);startGame();}}
+                  className="w-full py-3 rounded-2xl text-base font-bold border-2 btn-option"
+                  style={{borderColor:'rgba(255,255,255,0.2)',color:'#999',background:'rgba(255,255,255,0.03)'}}>
+                  🔄 התחל מההתחלה
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── PRIZE BOX OVERLAY ────────── */}
         {showPrize && (
