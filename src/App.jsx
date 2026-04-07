@@ -1401,7 +1401,7 @@ export default function App() {
   const reviveWithInvite = () => {
     const g = gs.current;
     if(g.invitesUsed < REVIVE_INVITE_LIMIT) {
-      const txt = '\u05D0\u05EA\u05D2\u05E8! \u05D4\u05E9\u05D2\u05EA\u05D9 '+g.score+' \u05E0\u05E7\u05D5\u05D3\u05D5\u05EA! \u{1F525}\n\u05EA\u05E0\u05E1\u05D4 \u05DC\u05E0\u05E6\u05D7 \u05D0\u05D5\u05EA\u05D9?\n\nhttps://sivanrab-eng.github.io/Math-blitz-app/';
+      const txt = '\u05D0\u05EA\u05D2\u05E8! \u05D4\u05E9\u05D2\u05EA\u05D9 '+g.score+' \u05E0\u05E7\u05D5\u05D3\u05D5\u05EA! \u{1F525}\n\u05EA\u05E0\u05E1\u05D4 \u05DC\u05E0\u05E6\u05D7 \u05D0\u05D5\u05EA\u05D9?\n\nhttps://sivanrab-eng.github.io/Math-blitz-app/?v=2';
       window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
       g.invitesUsed++;
       g.lives = 1;
@@ -1484,7 +1484,7 @@ export default function App() {
     const name = playerName || 'שחקן';
     const acc = g.answered > 0 ? Math.round((g.totalCorrect||0)/g.answered*100) : 0;
     const stars = acc >= 90 ? '⭐⭐⭐' : acc >= 70 ? '⭐⭐' : '⭐';
-    const txt = '\u26CF\uFE0F \u05D0\u05EA\u05D2\u05E8 \u05DE\u05EA\u05DE\u05D8\u05D9 \u26CF\uFE0F\n\n'+name+' \u05D4\u05E9\u05D9\u05D2 '+g.score+' \u05E0\u05E7\u05D5\u05D3\u05D5\u05EA! '+stars+'\n\u05E8\u05E6\u05E3: '+g.maxStreak+' \u{1F525} | \u05D3\u05D9\u05D5\u05E7: '+acc+'% \u{1F3AF}\n\n\u05EA\u05E0\u05E1\u05D4 \u05DC\u05E0\u05E6\u05D7 \u05D0\u05D5\u05EA\u05D9? \u{1F60F}\n\nhttps://sivanrab-eng.github.io/Math-blitz-app/';
+    const txt = '\u26CF\uFE0F \u05D0\u05EA\u05D2\u05E8 \u05DE\u05EA\u05DE\u05D8\u05D9 \u26CF\uFE0F\n\n'+name+' \u05D4\u05E9\u05D9\u05D2 '+g.score+' \u05E0\u05E7\u05D5\u05D3\u05D5\u05EA! '+stars+'\n\u05E8\u05E6\u05E3: '+g.maxStreak+' \u{1F525} | \u05D3\u05D9\u05D5\u05E7: '+acc+'% \u{1F3AF}\n\n\u05EA\u05E0\u05E1\u05D4 \u05DC\u05E0\u05E6\u05D7 \u05D0\u05D5\u05EA\u05D9? \u{1F60F}\n\nhttps://sivanrab-eng.github.io/Math-blitz-app/?v=2';
     window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
   };
 
@@ -1492,12 +1492,12 @@ export default function App() {
     const name = playerName || 'שחקן';
     const emojis = {5:'\u{1F525}',10:'\u26A1',15:'\u{1F4A5}',20:'\u{1F680}',25:'\u{1F31F}'};
     const e = emojis[num] || '\u{1F525}';
-    const txt = e+' '+name+' \u05E2\u05E9\u05D4 '+num+' \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05E0\u05DB\u05D5\u05E0\u05D5\u05EA \u05D1\u05E8\u05E6\u05E3! '+e+'\n\n\u05D7\u05D5\u05E9\u05D1 \u05E9\u05EA\u05D5\u05DB\u05DC \u05DC\u05E2\u05E7\u05D5\u05E3 \u05D0\u05D5\u05EA\u05D9 \u{1F609}?\n\n\u05E9\u05D7\u05E7 \u05E2\u05DB\u05E9\u05D9\u05D5:\nhttps://sivanrab-eng.github.io/Math-blitz-app/';
+    const txt = e+' '+name+' \u05E2\u05E9\u05D4 '+num+' \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05E0\u05DB\u05D5\u05E0\u05D5\u05EA \u05D1\u05E8\u05E6\u05E3! '+e+'\n\n\u05D7\u05D5\u05E9\u05D1 \u05E9\u05EA\u05D5\u05DB\u05DC \u05DC\u05E2\u05E7\u05D5\u05E3 \u05D0\u05D5\u05EA\u05D9 \u{1F609}?\n\n\u05E9\u05D7\u05E7 \u05E2\u05DB\u05E9\u05D9\u05D5:\nhttps://sivanrab-eng.github.io/Math-blitz-app/?v=2';
     window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
   };
 
   const shareMenuWhatsApp = () => {
-    const txt = 'https://sivanrab-eng.github.io/Math-blitz-app/';
+    const txt = 'https://sivanrab-eng.github.io/Math-blitz-app/?v=2';
     window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
   };
 
