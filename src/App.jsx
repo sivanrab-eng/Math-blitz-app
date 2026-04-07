@@ -1497,7 +1497,7 @@ export default function App() {
   };
 
   const shareMenuWhatsApp = () => {
-    const txt = '\u05DE\u05E9\u05D7\u05E7 \u05DE\u05EA\u05DE\u05D8\u05D9\u05E7\u05D4 \u05DE\u05D8\u05D5\u05E8\u05E3! \u{1F525}\n\u05EA\u05E0\u05E1\u05D4 \u05DC\u05E0\u05E6\u05D7 \u05D0\u05D5\u05EA\u05D9 \u{1F60F}\n\nhttps://sivanrab-eng.github.io/Math-blitz-app/';
+    const txt = 'https://sivanrab-eng.github.io/Math-blitz-app/';
     window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
   };
 
