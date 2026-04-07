@@ -1401,7 +1401,7 @@ export default function App() {
   const reviveWithInvite = () => {
     const g = gs.current;
     if(g.invitesUsed < REVIVE_INVITE_LIMIT) {
-      const txt = '\u{1F9E0}\u26A1 \u05DE\u05EA\u05DE\u05D8\u05D9\u05E7\u05D4 \u05D1\u05DC\u05D9\u05D9\u05D6 \u26A1\u{1F9E0}\n\n\u05D0\u05EA\u05D2\u05E8! \u05D4\u05E9\u05D2\u05EA\u05D9 '+g.score+' \u05E0\u05E7\u05D5\u05D3\u05D5\u05EA! \u{1F525}\n\u05EA\u05E0\u05E1\u05D4 \u05DC\u05E0\u05E6\u05D7 \u05D0\u05D5\u05EA\u05D9?\n\n\u05E9\u05D7\u05E7 \u05E2\u05DB\u05E9\u05D9\u05D5:\nhttps://sivanrab-eng.github.io/Math-blitz-app/';
+      const txt = '\u05D0\u05EA\u05D2\u05E8! \u05D4\u05E9\u05D2\u05EA\u05D9 '+g.score+' \u05E0\u05E7\u05D5\u05D3\u05D5\u05EA! \u{1F525}\n\u05EA\u05E0\u05E1\u05D4 \u05DC\u05E0\u05E6\u05D7 \u05D0\u05D5\u05EA\u05D9?\n\nhttps://sivanrab-eng.github.io/Math-blitz-app/';
       window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
       g.invitesUsed++;
       g.lives = 1;
@@ -1497,7 +1497,7 @@ export default function App() {
   };
 
   const shareMenuWhatsApp = () => {
-    const txt = '\u{1F9E0}\u26A1 \u05DE\u05EA\u05DE\u05D8\u05D9\u05E7\u05D4 \u05D1\u05DC\u05D9\u05D9\u05D6 \u26A1\u{1F9E0}\n\n\u05DE\u05E9\u05D7\u05E7 \u05DE\u05EA\u05DE\u05D8\u05D9\u05E7\u05D4 \u05DE\u05D8\u05D5\u05E8\u05E3! \u{1F525}\n\u05EA\u05E0\u05E1\u05D4 \u05DC\u05E0\u05E6\u05D7 \u05D0\u05D5\u05EA\u05D9 \u{1F60F}\n\nhttps://sivanrab-eng.github.io/Math-blitz-app/';
+    const txt = '\u05DE\u05E9\u05D7\u05E7 \u05DE\u05EA\u05DE\u05D8\u05D9\u05E7\u05D4 \u05DE\u05D8\u05D5\u05E8\u05E3! \u{1F525}\n\u05EA\u05E0\u05E1\u05D4 \u05DC\u05E0\u05E6\u05D7 \u05D0\u05D5\u05EA\u05D9 \u{1F60F}\n\nhttps://sivanrab-eng.github.io/Math-blitz-app/';
     window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
   };
 
