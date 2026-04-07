@@ -308,49 +308,6 @@ const topicAreaPerimeter = {
   }
 };
 
-// ── Topic 4: Angles ──────────────────────────
-const topicAngles = {
-  id: 'angles', name: 'זוויות', icon: '📏', color: '#ff66cc',
-  generate(diff) {
-    let question, answer, label='כמה מעלות?';
-    if(diff === 'easy') {
-      if(randInt(0,1)) {
-        const a = randInt(15,75);
-        question = 'זווית משלימה ל-'+a+'\u00B0'; answer = 90 - a;
-      } else {
-        const a = randInt(30,150);
-        question = 'זווית צמודה ל-'+a+'\u00B0\n(סכום=180\u00B0)'; answer = 180 - a;
-      }
-    } else if(diff === 'medium') {
-      const a = randInt(30,80), b = randInt(30, Math.min(80, 149-a));
-      const c2 = 180 - a - b;
-      question = 'במשולש:\nזווית א='+a+'\u00B0 זווית ב='+b+'\u00B0\nמה זווית ג?'; answer = c2;
-    } else {
-      if(randInt(0,1)) {
-        const a = randInt(20,70), b = randInt(20,70);
-        const c2 = 180 - a - b;
-        if(c2 <= 0) return topicAngles.generate(diff);
-        question = '3 זוויות על קו ישר:\n'+a+'\u00B0 + '+b+'\u00B0 + ?\u00B0 = 180\u00B0'; answer = c2;
-      } else {
-        const a = randInt(50,100), b = randInt(60,110), c2 = randInt(50,100);
-        const d2 = 360 - a - b - c2;
-        if(d2 <= 10) return topicAngles.generate(diff);
-        question = 'במרובע:\n'+a+'\u00B0, '+b+'\u00B0, '+c2+'\u00B0, ?\u00B0'; answer = d2;
-        label = 'מה הזווית הרביעית?';
-      }
-    }
-    const ansStr = answer+'\u00B0';
-    const wrongs = new Set();
-    [answer+10, answer-10, answer+5, answer-15, answer+20, 180-answer].forEach(w => {
-      if(w !== answer && w > 0 && w < 360) wrongs.add(w+'\u00B0');
-    });
-    while(wrongs.size < 3) wrongs.add(randInt(10,170)+'\u00B0');
-    const distractors = [...wrongs].filter(w=>w!==ansStr).slice(0,3);
-    const opts = shuffle([ansStr, ...distractors]);
-    return { question, qLabel: '📏 זוויות', aLabel: label, options: opts, correct: ansStr, correctIdx: opts.indexOf(ansStr) };
-  }
-};
-
 // ── Topic 5: Powers ──────────────────────────
 const topicPowers = {
   id: 'powers', name: 'חזקות', icon: '⚡', color: '#ff4444',
@@ -947,7 +904,7 @@ const topicProbability = {
 
 // ── All Topics ───────────────────────────────
 const ALL_TOPICS = [
-  topicFractions, topicOrderOps, topicAreaPerimeter, topicAngles, topicPowers, topicRatio,
+  topicFractions, topicOrderOps, topicAreaPerimeter, topicPowers, topicRatio,
   topicMultDiv, topicSimpleFrac, topicSigned, topicEquations, topicPercent,
   topicAlgebra, topicPythagoras, topicLinearFunc, topicExpLaws, topicStats,
   topicQuadratic, topicParabola, topicTrig, topicSequences, topicProbability
@@ -956,10 +913,10 @@ const ALL_TOPICS = [
 // ── Grade → Topics Map ───────────────────────
 const GRADES = {
   4: { label:'כיתה ד׳', topics:['multdiv','simplefrac','area'] },
-  5: { label:'כיתה ה׳', topics:['fractions','orderops','area','angles'] },
-  6: { label:'כיתה ו׳', topics:['fractions','orderops','area','angles','powers','ratio'] },
+  5: { label:'כיתה ה׳', topics:['fractions','orderops','area'] },
+  6: { label:'כיתה ו׳', topics:['fractions','orderops','area','powers','ratio'] },
   7: { label:'כיתה ז׳', topics:['signed','equations','percent','powers','ratio'] },
-  8: { label:'כיתה ח׳', topics:['algebra','equations','pythagoras','area','angles'] },
+  8: { label:'כיתה ח׳', topics:['algebra','equations','pythagoras','area'] },
   9: { label:'כיתה ט׳', topics:['linear','explaws','stats','equations','percent'] },
   10: { label:'כיתה י׳', topics:['quadratic','parabola','trig','sequences','probability'] },
 };
@@ -969,7 +926,6 @@ const HINTS = {
   fractions:'💡 הרחיבו או צמצמו כדי להשוות!',
   orderops:'💡 קודם סוגריים, אח"כ כפל/חילוק, ואז חיבור/חיסור!',
   area:'💡 שטח מלבן = אורך × רוחב, משולש = (בסיס×גובה)÷2',
-  angles:'💡 סכום זוויות במשולש = 180°, מרובע = 360°',
   powers:'💡 חזקה = כפל של הבסיס בעצמו כמספר החזקה',
   ratio:'💡 יחס = חלוקה לפי הפרופורציה, מצאו את הכפולה!',
   multdiv:'💡 נסו לפרק לעשרות ויחידות!',
@@ -994,7 +950,6 @@ const EXPLANATIONS = {
   fractions:{t:'שברים עשרוניים אחוזים',f:'½ = 0.5 = 50%',b:'הכפלה במונה ובמכנה באותו מספר = שבר שקול'},
   orderops:{t:'סדר פעולות',f:'סוגריים → חזקות → כפל/חילוק → חיבור/חיסור',b:'תמיד פתרו לפי הסדר הנכון!'},
   area:{t:'שטח והיקף',f:'מלבן: ש=א×ר, ה=2(א+ר)',b:'שטח = כמה מקום בפנים, היקף = הקו מסביב'},
-  angles:{t:'זוויות',f:'משולש=180°, מרובע=360°',b:'סכום הזוויות תמיד קבוע!'},
   powers:{t:'חזקות',f:'aⁿ = a×a×...×a (n פעמים)',b:'3² = 3×3 = 9'},
   ratio:{t:'יחס ופרופורציה',f:'a:b → חלק=סה"כ×(a/(a+b))',b:'מצאו את הכפולה המשותפת'},
   multdiv:{t:'כפל וחילוק',f:'a×b = b×a',b:'חילוק = הפעולה ההפוכה לכפל'},
@@ -1051,11 +1006,6 @@ const genQuestion = (diff, selectedTopicIds) => {
     else if(q.question.includes('ריבוע')&&q.question.includes('היקף')) q.solutionSteps = nums[0]+'×4 = '+ans;
     else if(q.question.includes('מקבילית')) q.solutionSteps = nums[0]+'×'+nums[1]+' = '+ans;
     else if(nums.length>=2) q.solutionSteps = nums[0]+'×'+nums[1]+' = '+ans;
-  } else if(id==='angles') {
-    if(q.question.includes('משלימה')) q.solutionSteps = '90° − '+nums[0]+'° = '+ans+'°';
-    else if(q.question.includes('צמודה')||q.question.includes('180')) q.solutionSteps = '180° − '+nums[0]+'° = '+ans+'°';
-    else if(q.question.includes('משולש')&&nums.length>=2) q.solutionSteps = '180° − '+nums[0]+'° − '+nums[1]+'° = '+ans+'°';
-    else if(q.question.includes('מרובע')&&nums.length>=3) q.solutionSteps = '360° − '+nums[0]+'° − '+nums[1]+'° − '+nums[2]+'° = '+ans+'°';
   } else if(id==='powers'||id==='orderops'||id==='multdiv'||id==='signed') {
     q.solutionSteps = q.question+' = '+ans;
   } else if(id==='percent'&&nums.length>=2) {
@@ -1207,7 +1157,7 @@ export default function App() {
   const [combo,setCombo] = useState('');
   const [lives,setLives] = useState(START_LIVES);
   const [breakingHeart,setBreakingHeart] = useState(false);
-  const [selectedTopics,setSelectedTopics] = useState(['fractions','orderops','area','angles','powers','ratio']);
+  const [selectedTopics,setSelectedTopics] = useState(['fractions','orderops','area','powers','ratio']);
   const [invitesUsed,setInvitesUsed] = useState(0);
   const [grade,setGrade] = useState(6);
   const [roundNum,setRoundNum] = useState(1);
