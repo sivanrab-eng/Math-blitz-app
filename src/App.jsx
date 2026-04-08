@@ -1253,6 +1253,7 @@ export default function App() {
   const [canInstall,setCanInstall] = useState(false);
   const [showOB,setShowOB] = useState(false);
   const [obStep,setOBStep] = useState(0);
+  const [obFromMenu,setObFromMenu] = useState(false);
   const deferredPrompt = useRef(null);
 
   const gs = useRef({score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:20,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0});
@@ -1772,8 +1773,8 @@ export default function App() {
   ];
   const obShouldShow = () => { try { return !localStorage.getItem('blitz-onboarding-done'); } catch { return true; } };
   const obMarkDone = () => { try { localStorage.setItem('blitz-onboarding-done','1'); } catch {} };
-  const obNext = () => { if(obStep < OB_STEPS_DATA.length-1) setOBStep(obStep+1); else { setShowOB(false); obMarkDone(); nextQ(); } };
-  const obSkip = () => { setShowOB(false); obMarkDone(); nextQ(); };
+  const obNext = () => { if(obStep < OB_STEPS_DATA.length-1) setOBStep(obStep+1); else { setShowOB(false); obMarkDone(); if(!obFromMenu) nextQ(); setObFromMenu(false); } };
+  const obSkip = () => { setShowOB(false); obMarkDone(); if(!obFromMenu) nextQ(); setObFromMenu(false); };
 
   // ── Hint Toggle ──────────────────────────
   const toggleHint = () => {
@@ -2060,6 +2061,11 @@ export default function App() {
               </button>
             )}
             <p className="text-xs text-gray-600 mt-1 slide-up" style={{animationDelay:'0.25s'}}>{GRADES[grade].label} • מתמטיקה והנדסה</p>
+            <button onClick={()=>{ setOBStep(0); setObFromMenu(true); setShowOB(true); }}
+              className="text-sm font-bold slide-up"
+              style={{color:'rgba(0,229,255,0.6)',animationDelay:'0.28s',background:'none',border:'none',textDecoration:'underline',textUnderlineOffset:'3px'}}>
+              ❓ איך משחקים?
+            </button>
           </div>
         )}
 
@@ -2391,7 +2397,7 @@ export default function App() {
         )}
 
         {/* ── ONBOARDING SPOTLIGHT ────────────── */}
-        {showOB && screen === 'playing' && (() => {
+        {showOB && (screen === 'playing' || screen === 'menu') && (() => {
           const s = OB_STEPS_DATA[obStep];
           const total = OB_STEPS_DATA.length;
           const isFinal = obStep === total - 1;
