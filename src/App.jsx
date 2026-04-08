@@ -1401,6 +1401,7 @@ export default function App() {
   const reviveWithInvite = () => {
     const g = gs.current;
     if(g.invitesUsed < REVIVE_INVITE_LIMIT) {
+      if(window.gtag) window.gtag('event','share_whatsapp',{event_category:'sharing',event_label:'revive_challenge',score:g.score});
       const txt = '\u05D0\u05EA\u05D2\u05E8! \u05D4\u05E9\u05D2\u05EA\u05D9 '+g.score+' \u05E0\u05E7\u05D5\u05D3\u05D5\u05EA! \u{1F525}\n\u05EA\u05E0\u05E1\u05D4 \u05DC\u05E0\u05E6\u05D7 \u05D0\u05D5\u05EA\u05D9?\n\nhttps://sivanrab-eng.github.io/Math-blitz-app/?v=3';
       window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
       g.invitesUsed++;
@@ -1480,6 +1481,7 @@ export default function App() {
   };
 
   const shareWhatsApp = () => {
+    if(window.gtag) window.gtag('event','share_whatsapp',{event_category:'sharing',event_label:'game_over_challenge',score:gs.current.score});
     const g = gs.current;
     const name = playerName || 'שחקן';
     const acc = g.answered > 0 ? Math.round((g.totalCorrect||0)/g.answered*100) : 0;
@@ -1489,6 +1491,7 @@ export default function App() {
   };
 
   const shareStreakWhatsApp = (num) => {
+    if(window.gtag) window.gtag('event','share_whatsapp',{event_category:'sharing',event_label:'streak_share',streak:num});
     const name = playerName || 'שחקן';
     const emojis = {5:'\u{1F525}',10:'\u26A1',15:'\u{1F4A5}',20:'\u{1F680}',25:'\u{1F31F}'};
     const e = emojis[num] || '\u{1F525}';
@@ -1497,6 +1500,7 @@ export default function App() {
   };
 
   const shareMenuWhatsApp = () => {
+    if(window.gtag) window.gtag('event','share_whatsapp',{event_category:'sharing',event_label:'menu_invite'});
     const txt = 'https://sivanrab-eng.github.io/Math-blitz-app/?v=3';
     window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
   };
