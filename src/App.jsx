@@ -1254,6 +1254,13 @@ export default function App() {
   const [showOB,setShowOB] = useState(false);
   const [obStep,setOBStep] = useState(0);
   const [obFromMenu,setObFromMenu] = useState(false);
+  const [practiceMode,setPracticeMode] = useState(false);
+  const [practiceFeedback,setPracticeFeedback] = useState(null);
+  const [practiceSelIdx,setPracticeSelIdx] = useState(null);
+  const [practiceDiff,setPracticeDiff] = useState('easy');
+  const [practiceCorrectCount,setPracticeCorrectCount] = useState(0);
+  const [practiceQCount,setPracticeQCount] = useState(0);
+  const [spotlightRect,setSpotlightRect] = useState(null);
   const deferredPrompt = useRef(null);
 
   const gs = useRef({score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:20,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0});
@@ -1315,7 +1322,18 @@ export default function App() {
     frozenTimeRef.current = null;
     clearSave();
     setScreen('playing');
-    if(obShouldShow()){ setOBStep(0); setShowOB(true); }
+    if(obShouldShow()){
+      const q = genQuestion('easy', gs.current.selectedTopics);
+      setQuestion(q);
+      setTimeLeft(15);
+      setStreak(2); setCombo('🔥');
+      setBoostCount(1); setFreezeCount(1);
+      endTimeRef.current = 0;
+      cancelAnimationFrame(rafRef.current);
+      setObFromMenu(false);
+      setOBStep(0);
+      requestAnimationFrame(() => { requestAnimationFrame(() => { setShowOB(true); updateSpotlight(0); }); });
+    }
     else { nextQ(); }
   };
 
@@ -1763,24 +1781,156 @@ export default function App() {
     });
   };
 
-  // ── Onboarding Spotlight ──────────────────────────
-  const OB_STEPS_DATA = [
-    { emoji:'⏱️', title:'זמן לתשובה', text:'יש לכם 20 שניות לענות.\nככל שעונים מהר יותר — יותר נקודות!\nהטיימר מתקצר עם כל תשובה נכונה ⚡' },
-    { emoji:'🪙', title:'ניקוד', text:'הניקוד = הזמן שנשאר × 10\nענו מהר = יותר נקודות!\nמינימום 10 נקודות על כל תשובה נכונה.' },
-    { emoji:'❤️', title:'חיים', text:'מתחילים עם 3 ❤️\nכל טעות או שנגמר הזמן = מאבדים חיים.\nנגמרו? חכו דקה לחיים, קנו 3 בנקודות, או שלחו אתגר!' },
-    { emoji:'🔥', title:'רצף בונוס', text:'ענו נכון ברצף — ותראו קומבו אימוג\'ים!\n5 ברצף = הקושי עולה = יותר נקודות!' },
-    { emoji:'💡', title:'רמז', text:'תקועים בשאלה?\nלחצו על 💡 בפינת השאלה לקבלת רמז!' }
-  ];
+  // ── Onboarding ──────────────────────────
   const obShouldShow = () => { try { return !localStorage.getItem('blitz-onboarding-done'); } catch { return true; } };
   const obMarkDone = () => { try { localStorage.setItem('blitz-onboarding-done','1'); } catch {} };
-  const obNext = () => { if(obStep < OB_STEPS_DATA.length-1) setOBStep(obStep+1); else { setShowOB(false); obMarkDone(); if(!obFromMenu) nextQ(); setObFromMenu(false); } };
-  const obSkip = () => { setShowOB(false); obMarkDone(); if(!obFromMenu) nextQ(); setObFromMenu(false); };
 
   // ── Hint Toggle ──────────────────────────
   const toggleHint = () => {
     if(feedback) return;
     setHintVisible(prev => !prev);
     if(!hintVisible) setTimeout(()=>setHintVisible(false), 4000);
+  };
+
+  // ── Practice Mode ───────────────────────
+  const startPractice = () => {
+    if(selectedTopics.length === 0) return;
+    setPracticeMode(true);
+    setPracticeFeedback(null);
+    setPracticeSelIdx(null);
+    setPracticeDiff('easy');
+    setPracticeCorrectCount(0);
+    setPracticeQCount(0);
+    const q = genQuestion('easy', selectedTopics);
+    setQuestion(q);
+    setScreen('practice');
+  };
+
+  const nextPracticeQ = () => {
+    let diff = practiceDiff;
+    const cnt = practiceCorrectCount;
+    if(cnt >= 10 && diff !== 'hard') diff = 'hard';
+    else if(cnt >= 5 && diff === 'easy') diff = 'medium';
+    setPracticeDiff(diff);
+    const q = genQuestion(diff, selectedTopics);
+    setQuestion(q);
+    setPracticeFeedback(null);
+    setPracticeSelIdx(null);
+    setPracticeQCount(prev => prev + 1);
+  };
+
+  const handlePracticeAnswer = (idx) => {
+    if(practiceFeedback) return;
+    setPracticeSelIdx(idx);
+    if(idx === question.correctIdx) {
+      setPracticeFeedback('correct');
+      setPracticeCorrectCount(prev => prev + 1);
+      playCorrect();
+    } else {
+      setPracticeFeedback('wrong');
+      try { navigator.vibrate?.(100); } catch{}
+    }
+  };
+
+  const revealPracticeSolution = () => {
+    if(practiceFeedback) return;
+    setPracticeFeedback('revealed');
+  };
+
+  const exitPractice = () => {
+    setPracticeMode(false);
+    setQuestion(null);
+    setScreen('menu');
+  };
+
+  // ── Spotlight Tutorial ──────────────────
+  const OB_SPOTLIGHT_STEPS = [
+    { targetId:'hud-timer', emoji:'⏱️', title:'זמן לתשובה', text:'יש לכם 20 שניות לענות.\nככל שעונים מהר יותר — יותר נקודות!\nהטיימר מתקצר עם כל תשובה נכונה ⚡' },
+    { targetId:'hud-score', emoji:'🪙', title:'ניקוד', text:'הניקוד = הזמן שנשאר × 10\nענו מהר = יותר נקודות!\nמינימום 10 נקודות על כל תשובה נכונה.' },
+    { targetId:'hud-lives', emoji:'❤️', title:'חיים', text:'מתחילים עם 3 ❤️\nכל טעות או שנגמר הזמן = מאבדים חיים.\nנגמרו? חכו דקה לחיים, קנו 3 בנקודות, או שלחו אתגר!' },
+    { targetId:'hud-streak', emoji:'🔥', title:'רצף בונוס', text:'ענו נכון ברצף — ותראו קומבו אימוג\'ים!\n5 ברצף = הקושי עולה = יותר נקודות!' },
+    { targetId:'hud-powerups', emoji:'⚡', title:'כוחות מיוחדים', text:'❄️ הקפאה = עוצר את הטיימר\n⚡ בוסט = זמן נוסף\n🆘 חבר = שלח לחבר וקבל שניות!' },
+    { targetId:'hud-hint', emoji:'💡', title:'רמז', text:'תקועים בשאלה?\nלחצו על 💡 בפינת השאלה לקבלת רמז!' },
+  ];
+
+  const startSpotlightTutorial = () => {
+    // Set up a dummy game state so the playing screen renders
+    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:20,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics],totalCorrect:0,totalStreak:0,boostCount:0,freezeCount:1,usedPowerUp:false};
+    setScore(0); setStreak(2); setMaxStreak(0); setAnswered(0);
+    setLives(START_LIVES); setInvitesUsed(0); setAdsUsed(0); setTotalCorrect(0);
+    setRoundNum(1); setRoundCorrect(0); setGainedLife(false);
+    setBoostCount(1); setFreezeCount(1); setActiveFreeze(false); setUsedPowerUp(false);
+    setIsHigh(false); setFeedback(null); setSelIdx(null); setCombo('🔥');
+    frozenTimeRef.current = null;
+    const q = genQuestion('easy', selectedTopics.length > 0 ? selectedTopics : ['fractions']);
+    setQuestion(q);
+    setTimeLeft(15);
+    endTimeRef.current = 0; // don't let timer tick
+    cancelAnimationFrame(rafRef.current);
+    setScreen('playing');
+    setObFromMenu(true);
+    setOBStep(0);
+    // Wait for DOM to render, then show spotlight
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setShowOB(true);
+        updateSpotlight(0);
+      });
+    });
+  };
+
+  const updateSpotlight = (stepIdx) => {
+    const step = OB_SPOTLIGHT_STEPS[stepIdx];
+    if(!step || !step.targetId) { setSpotlightRect(null); return; }
+    const el = document.getElementById(step.targetId);
+    if(el) {
+      const r = el.getBoundingClientRect();
+      const pad = 8;
+      setSpotlightRect({ x: r.left - pad, y: r.top - pad, w: r.width + pad*2, h: r.height + pad*2 });
+    } else {
+      setSpotlightRect(null);
+    }
+  };
+
+  const obNext = () => {
+    if(obStep < OB_SPOTLIGHT_STEPS.length-1) {
+      const next = obStep+1;
+      setOBStep(next);
+      updateSpotlight(next);
+    } else {
+      setShowOB(false);
+      obMarkDone();
+      setSpotlightRect(null);
+      if(obFromMenu) {
+        setObFromMenu(false);
+        setScreen('menu');
+        setQuestion(null);
+        cancelAnimationFrame(rafRef.current);
+      } else {
+        // Reset demo values from tutorial
+        setStreak(0); setCombo(''); setBoostCount(0); setFreezeCount(1);
+        gs.current.streak=0; gs.current.boostCount=0; gs.current.freezeCount=1;
+        setObFromMenu(false);
+        nextQ();
+      }
+    }
+  };
+  const obSkip = () => {
+    setShowOB(false);
+    obMarkDone();
+    setSpotlightRect(null);
+    if(obFromMenu) {
+      setObFromMenu(false);
+      setScreen('menu');
+      setQuestion(null);
+      cancelAnimationFrame(rafRef.current);
+    } else {
+      // Reset demo values from tutorial
+      setStreak(0); setCombo(''); setBoostCount(0); setFreezeCount(1);
+      gs.current.streak=0; gs.current.boostCount=0; gs.current.freezeCount=1;
+      setObFromMenu(false);
+      nextQ();
+    }
   };
 
   // ── Save Name ────────────────────────────
@@ -2036,6 +2186,11 @@ export default function App() {
               style={{borderColor:'#00e5ff',color:'#00e5ff',background:'rgba(0,229,255,0.08)',animationDelay:'0.15s'}}>
               התחל משחק ⚡
             </button>
+            <button onClick={startPractice}
+              className="w-64 py-3 rounded-2xl text-lg font-bold border-2 btn-option slide-up"
+              style={{borderColor:'#a78bfa',color:'#a78bfa',background:'rgba(167,139,250,0.08)',animationDelay:'0.17s',boxShadow:'0 0 12px rgba(167,139,250,0.2)'}}>
+              📝 תרגול
+            </button>
             <button onClick={()=>setScreen('duelSetup')}
               className="w-64 py-3 rounded-2xl text-lg font-bold border-2 btn-option slide-up"
               style={{borderColor:'#ff4444',color:'#ff4444',background:'rgba(255,68,68,0.08)',animationDelay:'0.18s',boxShadow:'0 0 12px rgba(255,68,68,0.2)'}}>
@@ -2061,7 +2216,7 @@ export default function App() {
               </button>
             )}
             <p className="text-xs text-gray-600 mt-1 slide-up" style={{animationDelay:'0.25s'}}>{GRADES[grade].label} • מתמטיקה והנדסה</p>
-            <button onClick={()=>{ setOBStep(0); setObFromMenu(true); setShowOB(true); }}
+            <button onClick={startSpotlightTutorial}
               className="text-sm font-bold slide-up"
               style={{color:'rgba(0,229,255,0.6)',animationDelay:'0.28s',background:'none',border:'none',textDecoration:'underline',textUnderlineOffset:'3px'}}>
               ❓ איך משחקים?
@@ -2073,7 +2228,7 @@ export default function App() {
         {screen === 'playing' && question && (
           <div className="flex-1 flex flex-col px-4 pt-6 pb-6 max-w-lg mx-auto w-full">
             {/* Row 1: Lives centered prominently */}
-            <div className="flex items-center justify-center gap-1.5 mb-2">
+            <div id="hud-lives" className="flex items-center justify-center gap-1.5 mb-2">
               {Array.from({length: MAX_LIVES}, (_,i) => (
                 <div key={i} className={`transition-all duration-300 ${breakingHeart && i === livesDisplay ? 'heart-break' : ''} ${gainedLife && i === livesDisplay-1 ? 'life-gain' : ''}`}
                   style={{
@@ -2092,15 +2247,16 @@ export default function App() {
               <div className="text-xs text-gray-400">
                 סיבוב {roundNum} • <span style={{color:'#ffaa00',fontFamily:"'Orbitron',sans-serif"}}>{(gs.current.answered % ROUND_SIZE)+1}/{ROUND_SIZE}</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div id="hud-streak" className="flex items-center gap-2">
                 {streak > 0 && (
                   <span className="text-sm font-bold" style={{color:'#ff0080',fontFamily:"'Orbitron',sans-serif"}}>{streak}{combo}</span>
                 )}
-                <span className="text-xl font-black glow-cyan" style={{color:'#00e5ff',fontFamily:"'Orbitron',sans-serif"}}>{score}</span>
+                <span id="hud-score" className="text-xl font-black glow-cyan" style={{color:'#00e5ff',fontFamily:"'Orbitron',sans-serif"}}>{score}</span>
               </div>
             </div>
 
             {/* Timer Bar */}
+            <div id="hud-timer">
             <div className={"w-full h-2 rounded-full bg-gray-900 mb-4 overflow-hidden border "+(activeFreeze?'border-cyan-400 freeze-active':'border-gray-800')}>
               <div className="h-full rounded-full"
                 style={{width:(timerFrac*100)+'%',background:activeFreeze?'#7dd3fc':timerColor,boxShadow:'0 0 12px '+(activeFreeze?'#7dd3fc':timerColor),transition:'width 0.1s linear, background-color 0.3s'}}/>
@@ -2109,9 +2265,10 @@ export default function App() {
             <div className="text-center mb-1">
               <span className="text-xs text-gray-500">{activeFreeze ? '❄️ הוקפא!' : Math.ceil(timeLeft)+' שניות'}</span>
             </div>
+            </div>
 
             {/* Power-Up Bar */}
-            <div className="flex items-center justify-center gap-2 mb-2 relative">
+            <div id="hud-powerups" className="flex items-center justify-center gap-2 mb-2 relative">
               <button onClick={useFreeze} disabled={freezeCount<=0||!!feedback||usedPowerUp}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-xl border-2 btn-option text-xs font-bold transition-all"
                 style={{
@@ -2210,7 +2367,7 @@ export default function App() {
               {combo && <div className="text-center text-2xl mt-2 pop-in">{combo}</div>}
               {/* Hint Button */}
               {!feedback && (
-                <button onClick={toggleHint} className="absolute -bottom-2 -left-2 w-10 h-10 rounded-full border-2 flex items-center justify-center btn-option text-lg"
+                <button id="hud-hint" onClick={toggleHint} className="absolute -bottom-2 -left-2 w-10 h-10 rounded-full border-2 flex items-center justify-center btn-option text-lg"
                   style={{borderColor:'#fbbf24',background:'rgba(251,191,36,0.15)',color:'#fbbf24',boxShadow:'0 2px 8px rgba(251,191,36,0.3)',zIndex:10}}>
                   💡
                 </button>
@@ -2338,6 +2495,148 @@ export default function App() {
           </div>
         )}
 
+        {/* ── PRACTICE SCREEN ─────────────── */}
+        {screen === 'practice' && question && (
+          <div className="flex-1 flex flex-col px-4 pt-6 pb-6 max-w-lg mx-auto w-full">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={exitPractice} className="text-gray-500 text-xs px-2 py-1 rounded-lg border border-gray-800 btn-option">
+                חזרה ←
+              </button>
+              <div className="text-center">
+                <span className="text-sm font-bold" style={{color:'#a78bfa'}}>📝 תרגול</span>
+                <span className="text-xs text-gray-500 mx-2">•</span>
+                <span className="text-xs text-gray-400">{ALL_TOPICS.find(t=>t.id===question.topicId)?.name || ''}</span>
+              </div>
+              <div className="text-xs text-gray-500">
+                {practiceQCount+1} שאלה
+              </div>
+            </div>
+
+            {/* Difficulty indicator */}
+            <div className="flex justify-center gap-2 mb-4">
+              {['easy','medium','hard'].map(d => (
+                <div key={d} className="px-3 py-1 rounded-full text-xs font-bold" style={{
+                  background: d===practiceDiff ? 'rgba(167,139,250,0.2)' : 'rgba(255,255,255,0.03)',
+                  border: d===practiceDiff ? '1.5px solid #a78bfa' : '1.5px solid rgba(255,255,255,0.08)',
+                  color: d===practiceDiff ? '#a78bfa' : '#555',
+                }}>
+                  {d==='easy'?'קל':d==='medium'?'בינוני':'קשה'}
+                </div>
+              ))}
+            </div>
+
+            {/* Topic label */}
+            <div className="text-center mb-3">
+              <span className="text-sm font-bold px-4 py-1 rounded-full border"
+                style={{borderColor:'rgba(167,139,250,0.3)',color:'#a78bfa',background:'rgba(167,139,250,0.05)'}}>
+                {question.aLabel}
+              </span>
+            </div>
+
+            {/* Question Card */}
+            <div className="mx-auto mb-4 pop-in w-full">
+              <div className="rounded-3xl px-8 py-6 text-center border-2"
+                style={{borderColor:'rgba(167,139,250,0.2)',background:'rgba(8,8,35,0.85)',boxShadow:'0 0 40px rgba(167,139,250,0.1)'}}>
+                {question.qLabel && <div className="text-xs text-gray-500 mb-2">{question.qLabel}</div>}
+                <div style={{fontFamily:"'Orbitron',sans-serif",fontSize: question.question.length > 25 ? '1.2rem' : question.question.length > 15 ? '1.6rem' : question.question.length > 8 ? '2.2rem' : '3rem', whiteSpace:'pre-line', lineHeight:1.4}}
+                  className="font-black tracking-wide" dir="ltr"
+                  >
+                  <span style={{color:'#c4b5fd',textShadow:'0 0 15px rgba(167,139,250,0.4)'}}>{question.question}</span>
+                </div>
+                {question.drawing && <div className="mt-3" dangerouslySetInnerHTML={{__html:question.drawing}}/>}
+              </div>
+            </div>
+
+            {/* Answer Options */}
+            <div className="grid grid-cols-2 gap-3">
+              {question.options.map((opt,i) => {
+                let borderC = 'rgba(255,255,255,0.15)';
+                let bgC = 'rgba(255,255,255,0.04)';
+                let textC = '#fff';
+                let extraClass = '';
+                if(practiceFeedback && i === question.correctIdx) { borderC='#4ade80'; bgC='rgba(74,222,128,0.15)'; textC='#4ade80'; extraClass='correct-anim'; }
+                else if(practiceFeedback==='wrong' && i === practiceSelIdx) { borderC='#ff0080'; bgC='rgba(255,0,128,0.15)'; textC='#ff0080'; extraClass='wrong-anim'; }
+                else if(practiceFeedback==='revealed' && i !== question.correctIdx) { borderC='rgba(255,255,255,0.06)'; bgC='rgba(255,255,255,0.01)'; textC='#555'; }
+
+                return (
+                  <button key={i} onClick={()=>handlePracticeAnswer(i)} disabled={!!practiceFeedback}
+                    className={'rounded-2xl py-5 text-center border-2 btn-option slide-up '+extraClass}
+                    style={{borderColor:borderC,background:bgC,animationDelay:(i*0.06)+'s',color:textC}}>
+                    <span dir="ltr" className="text-2xl font-black" style={{fontFamily:"'Orbitron',sans-serif"}}>{opt}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Show Solution Button (before answering) */}
+            {!practiceFeedback && (
+              <button onClick={revealPracticeSolution}
+                className="mt-3 py-2 rounded-xl text-sm font-bold border btn-option"
+                style={{borderColor:'rgba(167,139,250,0.3)',color:'#a78bfa',background:'rgba(167,139,250,0.06)'}}>
+                👁️ הצג פתרון
+              </button>
+            )}
+
+            {/* Correct feedback */}
+            {practiceFeedback === 'correct' && (
+              <div className="text-center mt-3 pop-in">
+                <span className="text-lg font-black" style={{color:'#4ade80'}}>נכון! 🎯</span>
+              </div>
+            )}
+
+            {/* Solution Card (wrong / revealed) */}
+            {practiceFeedback && EXPLANATIONS[question.topicId] && (
+              <div className="w-full max-w-sm mx-auto rounded-2xl p-4 mt-3 slide-up"
+                style={{background:'rgba(255,255,255,0.06)',border:'1.5px solid rgba(167,139,250,0.25)'}}>
+                {practiceFeedback === 'wrong' && (
+                  <div className="text-center mb-3">
+                    <span className="text-base font-black" style={{color:'#f87171'}}>לא נכון 😅</span>
+                  </div>
+                )}
+                {practiceFeedback === 'revealed' && (
+                  <div className="text-center mb-3">
+                    <span className="text-base font-bold" style={{color:'#a78bfa'}}>👁️ פתרון</span>
+                  </div>
+                )}
+                <div className="text-xs font-bold mb-2" style={{color:'#a78bfa',letterSpacing:'0.5px'}}>
+                  📖 {EXPLANATIONS[question.topicId].t}
+                </div>
+                <div className="text-sm leading-relaxed mb-3" style={{color:'#e2e8f0'}}>
+                  {EXPLANATIONS[question.topicId].b}
+                </div>
+                <div className="py-2 px-4 rounded-xl text-center text-sm font-bold mb-3"
+                  style={{background:'rgba(167,139,250,0.15)',border:'1px solid rgba(167,139,250,0.3)',color:'#c4b5fd'}}>
+                  {EXPLANATIONS[question.topicId].f}
+                </div>
+                {question.solutionSteps && (
+                  <div className="py-2 px-4 rounded-xl text-center mb-3"
+                    style={{background:'rgba(0,229,255,0.08)',border:'1px solid rgba(0,229,255,0.2)'}}>
+                    <div className="text-xs text-gray-400 mb-1">פתרון:</div>
+                    <div className="text-base font-bold" dir="ltr" style={{color:'#7dd3fc',fontFamily:"'Orbitron',sans-serif",whiteSpace:'pre-line'}}>
+                      {question.solutionSteps}
+                    </div>
+                  </div>
+                )}
+                <div className="text-center text-sm" style={{color:'rgba(255,255,255,0.5)'}}>
+                  ✅ התשובה הנכונה: <span style={{color:'#4ade80',fontWeight:900,fontSize:'18px'}}>{question.correct}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Next Question Button */}
+            {practiceFeedback && (
+              <button onClick={nextPracticeQ}
+                className="mt-4 w-full py-3 rounded-2xl text-lg font-bold border-2 btn-option pop-in"
+                style={{borderColor:'#a78bfa',color:'#a78bfa',background:'rgba(167,139,250,0.08)',boxShadow:'0 0 15px rgba(167,139,250,0.2)'}}>
+                הבא ←
+              </button>
+            )}
+
+            <div className="text-center mt-3 text-xs text-gray-600">💡 תרגול חופשי — בלי טיימר, בלי ניקוד</div>
+          </div>
+        )}
+
         {/* ── ROUND SUMMARY ─────────────── */}
         {screen === 'roundSummary' && (
           <div className="flex-1 flex flex-col items-center justify-center px-6 gap-4">
@@ -2397,27 +2696,39 @@ export default function App() {
         )}
 
         {/* ── ONBOARDING SPOTLIGHT ────────────── */}
-        {showOB && (screen === 'playing' || screen === 'menu') && (() => {
-          const s = OB_STEPS_DATA[obStep];
-          const total = OB_STEPS_DATA.length;
+        {showOB && screen === 'playing' && (() => {
+          const s = OB_SPOTLIGHT_STEPS[obStep];
+          const total = OB_SPOTLIGHT_STEPS.length;
           const isFinal = obStep === total - 1;
-          const obStyles = `
-            .ob-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(3,3,20,0.92);}
-            .ob-card{width:calc(100% - 40px);max-width:320px;background:rgba(10,5,40,0.97);border:2px solid rgba(0,229,255,0.4);border-radius:20px;padding:18px 18px 14px;text-align:center;box-shadow:0 0 40px rgba(0,229,255,0.15),0 20px 60px rgba(0,0,0,0.5);direction:rtl;animation:obSlideIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;}
-            @keyframes obSlideIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
-            .ob-dots{display:flex;justify-content:center;gap:5px;margin-bottom:14px;}
-            .ob-dot{height:6px;border-radius:3px;transition:all 0.3s ease;}
-          `;
+          const sr = spotlightRect;
+          const overflowBottom = sr && (sr.y + sr.h + 280 > window.innerHeight);
           return (
-            <div className="ob-overlay" key={'ob-'+obStep}>
-              <style>{obStyles}</style>
-              <div className="ob-card">
+            <div key={'ob-'+obStep} style={{position:'fixed',inset:0,zIndex:9999,display:'flex',alignItems:sr?'flex-start':'center',justifyContent:'center'}}>
+              {/* Dark overlay with spotlight hole */}
+              <svg style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
+                <defs>
+                  <mask id="spotlight-mask">
+                    <rect width="100%" height="100%" fill="white"/>
+                    {sr && <rect x={sr.x} y={sr.y} width={sr.w} height={sr.h} rx="12" fill="black"/>}
+                  </mask>
+                </defs>
+                <rect width="100%" height="100%" fill="rgba(3,3,20,0.88)" mask="url(#spotlight-mask)"/>
+                {sr && <rect x={sr.x} y={sr.y} width={sr.w} height={sr.h} rx="12" fill="none" stroke="#00e5ff" strokeWidth="2" style={{filter:'drop-shadow(0 0 8px rgba(0,229,255,0.6))'}}/>}
+              </svg>
+              {/* Explanation Card */}
+              <div style={{position:'absolute',left:0,right:0,display:'flex',justifyContent:'center',
+                top: sr ? (overflowBottom ? Math.max(8, sr.y - 16) : sr.y + sr.h + 16) : '50%',
+                transform: sr && overflowBottom ? 'translateY(-100%)' : (sr ? 'none' : 'translateY(-50%)'),
+                zIndex:10000,padding:'0 20px',pointerEvents:'none'}}>
+              <div style={{width:'100%',maxWidth:320,background:'rgba(10,5,40,0.97)',border:'2px solid rgba(0,229,255,0.4)',borderRadius:20,padding:'18px 18px 14px',textAlign:'center',boxShadow:'0 0 40px rgba(0,229,255,0.15),0 20px 60px rgba(0,0,0,0.5)',direction:'rtl',pointerEvents:'auto'}}>
+                <style>{`@keyframes obFadeIn{from{opacity:0;}to{opacity:1;}}`}</style>
                 <div style={{fontSize:11,color:'#00e5ff',fontWeight:700,marginBottom:8,opacity:0.7}}>
                   {obStep+1} / {total}
                 </div>
-                <div className="ob-dots">
+                <div style={{display:'flex',justifyContent:'center',gap:5,marginBottom:14}}>
                   {Array.from({length:total}).map((_,i)=>(
-                    <div key={i} className="ob-dot" style={{
+                    <div key={i} style={{
+                      height:6,borderRadius:3,transition:'all 0.3s ease',
                       width: i===obStep?24:6,
                       background: i===obStep?'#00e5ff':i<obStep?'rgba(0,229,255,0.5)':'rgba(255,255,255,0.12)',
                       boxShadow: i===obStep?'0 0 10px rgba(0,229,255,0.5)':'none'
@@ -2439,9 +2750,10 @@ export default function App() {
                     background:isFinal?'linear-gradient(135deg,#ff0080,#ff3399)':'linear-gradient(135deg,#00e5ff,#00b8d4)',
                     color:isFinal?'#fff':'#050510',
                     boxShadow:isFinal?'0 4px 20px rgba(255,0,128,0.4)':'0 4px 20px rgba(0,229,255,0.4)'}}>
-                    {isFinal ? 'יאללה נתחיל! 🚀' : 'הבא ←'}
+                    {isFinal ? (obFromMenu ? 'הבנתי! ←' : 'יאללה נתחיל! 🚀') : 'הבא ←'}
                   </button>
                 </div>
+              </div>
               </div>
             </div>
           );
