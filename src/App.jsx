@@ -1246,6 +1246,8 @@ export default function App() {
   const [duelScore1,setDuelScore1] = useState(0);
   const [duelQCount] = useState(5);
   const [canInstall,setCanInstall] = useState(false);
+  const [showOB,setShowOB] = useState(false);
+  const [obStep,setOBStep] = useState(0);
   const deferredPrompt = useRef(null);
 
   const gs = useRef({score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:20,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0});
@@ -1296,7 +1298,8 @@ export default function App() {
     frozenTimeRef.current = null;
     clearSave();
     setScreen('playing');
-    nextQ();
+    if(obShouldShow()){ setOBStep(0); setShowOB(true); }
+    else { nextQ(); }
   };
 
   const nextQ = () => {
@@ -1717,6 +1720,19 @@ export default function App() {
       }
     });
   };
+
+  // ── Onboarding Spotlight ──────────────────────────
+  const OB_STEPS_DATA = [
+    { emoji:'⏱️', title:'זמן לתשובה', text:'יש לכם 20 שניות לענות.\nככל שעונים מהר יותר — יותר נקודות!\nהטיימר מתקצר עם כל תשובה נכונה ⚡' },
+    { emoji:'🪙', title:'ניקוד', text:'הניקוד = הזמן שנשאר × 10\nענו מהר = יותר נקודות!\nמינימום 10 נקודות על כל תשובה נכונה.' },
+    { emoji:'❤️', title:'חיים', text:'מתחילים עם 3 ❤️\nכל טעות או שנגמר הזמן = מאבדים חיים.\nנגמרו? קנו בנקודות או שלחו אתגר לחבר!' },
+    { emoji:'🔥', title:'רצף בונוס', text:'ענו נכון ברצף — ותראו קומבו אימוג\'ים!\n5 ברצף = הקושי עולה = יותר נקודות!' },
+    { emoji:'💡', title:'רמז', text:'תקועים בשאלה?\nלחצו על 💡 בפינת השאלה לקבלת רמז!' }
+  ];
+  const obShouldShow = () => { try { return !localStorage.getItem('blitz-onboarding-done'); } catch { return true; } };
+  const obMarkDone = () => { try { localStorage.setItem('blitz-onboarding-done','1'); } catch {} };
+  const obNext = () => { if(obStep < OB_STEPS_DATA.length-1) setOBStep(obStep+1); else { setShowOB(false); obMarkDone(); nextQ(); } };
+  const obSkip = () => { setShowOB(false); obMarkDone(); nextQ(); };
 
   // ── Hint Toggle ──────────────────────────
   const toggleHint = () => {
@@ -2332,6 +2348,57 @@ export default function App() {
             </button>
           </div>
         )}
+
+        {/* ── ONBOARDING SPOTLIGHT ────────────── */}
+        {showOB && screen === 'playing' && (() => {
+          const s = OB_STEPS_DATA[obStep];
+          const total = OB_STEPS_DATA.length;
+          const isFinal = obStep === total - 1;
+          const obStyles = `
+            .ob-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(3,3,20,0.92);}
+            .ob-card{width:calc(100% - 40px);max-width:320px;background:rgba(10,5,40,0.97);border:2px solid rgba(0,229,255,0.4);border-radius:20px;padding:18px 18px 14px;text-align:center;box-shadow:0 0 40px rgba(0,229,255,0.15),0 20px 60px rgba(0,0,0,0.5);direction:rtl;animation:obSlideIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;}
+            @keyframes obSlideIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+            .ob-dots{display:flex;justify-content:center;gap:5px;margin-bottom:14px;}
+            .ob-dot{height:6px;border-radius:3px;transition:all 0.3s ease;}
+          `;
+          return (
+            <div className="ob-overlay" key={'ob-'+obStep}>
+              <style>{obStyles}</style>
+              <div className="ob-card">
+                <div style={{fontSize:11,color:'#00e5ff',fontWeight:700,marginBottom:8,opacity:0.7}}>
+                  {obStep+1} / {total}
+                </div>
+                <div className="ob-dots">
+                  {Array.from({length:total}).map((_,i)=>(
+                    <div key={i} className="ob-dot" style={{
+                      width: i===obStep?24:6,
+                      background: i===obStep?'#00e5ff':i<obStep?'rgba(0,229,255,0.5)':'rgba(255,255,255,0.12)',
+                      boxShadow: i===obStep?'0 0 10px rgba(0,229,255,0.5)':'none'
+                    }}/>
+                  ))}
+                </div>
+                <div style={{fontSize:32,marginBottom:4}}>{s.emoji}</div>
+                <div style={{fontSize:20,fontWeight:900,color:'#00e5ff',marginBottom:8,textShadow:'0 0 12px rgba(0,229,255,0.3)'}}>
+                  {s.title}
+                </div>
+                <div style={{fontSize:15,color:'#e0e0e0',lineHeight:1.8,marginBottom:18,fontWeight:500,whiteSpace:'pre-line'}}>
+                  {s.text}
+                </div>
+                <div style={{display:'flex',gap:10}}>
+                  <button onClick={obSkip} style={{flex:1,padding:'11px 0',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,0.1)',color:'#666',fontSize:14,fontWeight:700,cursor:'pointer'}}>
+                    דלג
+                  </button>
+                  <button onClick={obNext} style={{flex:2,padding:'11px 0',borderRadius:12,border:'none',fontSize:16,fontWeight:900,cursor:'pointer',
+                    background:isFinal?'linear-gradient(135deg,#ff0080,#ff3399)':'linear-gradient(135deg,#00e5ff,#00b8d4)',
+                    color:isFinal?'#fff':'#050510',
+                    boxShadow:isFinal?'0 4px 20px rgba(255,0,128,0.4)':'0 4px 20px rgba(0,229,255,0.4)'}}>
+                    {isFinal ? 'יאללה נתחיל! 🚀' : 'הבא ←'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── REVIVE SCREEN ────────────── */}
         {screen === 'revive' && (
