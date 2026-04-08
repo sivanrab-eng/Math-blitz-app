@@ -9,12 +9,14 @@ import { useState, useEffect, useRef } from "react";
 // ── Constants ────────────────────────────────
 const MAX_LIVES = 5;
 const START_LIVES = 3;
-const REVIVE_COST = 100;
+const REVIVE_COST = 3000;
 const REVIVE_INVITE_LIMIT = 2;
 const ROUND_SIZE = 10;
 const LIFE_EARN_STREAK = 7;
 const AD_WATCH_SECONDS = 5; // simulated ad duration until real ads connected
 const REVIVE_AD_LIMIT = 1;  // max free revives via ad per game
+const REVIVE_WAIT_SECONDS = 60; // wait 60s for 1 free life
+const REVIVE_POINTS_LIVES = 3;  // buying with points gives 3 lives
 
 // ── Power-Up Constants ──────────────────────
 const BOOST_STREAK = 5;     // every 5 correct in a row → boost
@@ -1215,6 +1217,9 @@ export default function App() {
   const [watchingAd,setWatchingAd] = useState(false);
   const [adCountdown,setAdCountdown] = useState(0);
   const [adsUsed,setAdsUsed] = useState(0);
+  const [waitingForLife,setWaitingForLife] = useState(false);
+  const [waitCountdown,setWaitCountdown] = useState(0);
+  const waitIntervalRef = useRef(null);
   const [showInterstitial,setShowInterstitial] = useState(false);
   const [charEmoji,setCharEmoji] = useState('🤓');
   const [charMsg,setCharMsg] = useState('');
@@ -1277,6 +1282,17 @@ export default function App() {
     if (outcome === 'accepted') { setCanInstall(false); }
     deferredPrompt.current = null;
   };
+
+  // ── Auto-start wait timer on revive screen ───
+  useEffect(() => {
+    if(screen === 'revive') {
+      startWaitTimer();
+    } else {
+      if(waitIntervalRef.current) { clearInterval(waitIntervalRef.current); waitIntervalRef.current = null; }
+      setWaitingForLife(false);
+    }
+    return () => { if(waitIntervalRef.current) { clearInterval(waitIntervalRef.current); waitIntervalRef.current = null; } };
+  },[screen]);
 
   const saveScore = () => {
     const g = gs.current;
@@ -1479,13 +1495,38 @@ export default function App() {
     const g = gs.current;
     if(g.score >= REVIVE_COST) {
       g.score -= REVIVE_COST;
-      g.lives = 1;
+      g.lives = Math.min(REVIVE_POINTS_LIVES, MAX_LIVES);
       setScore(g.score);
-      setLives(1);
+      setLives(g.lives);
+      if(waitIntervalRef.current) { clearInterval(waitIntervalRef.current); waitIntervalRef.current = null; }
+      setWaitingForLife(false);
       playRevive();
       setScreen('playing');
       nextQ();
     }
+  };
+
+  const startWaitTimer = () => {
+    if(waitIntervalRef.current) return; // already running
+    setWaitingForLife(true);
+    setWaitCountdown(REVIVE_WAIT_SECONDS);
+    waitIntervalRef.current = setInterval(() => {
+      setWaitCountdown(prev => {
+        if(prev <= 1) {
+          clearInterval(waitIntervalRef.current);
+          waitIntervalRef.current = null;
+          setWaitingForLife(false);
+          const g = gs.current;
+          g.lives = 1;
+          setLives(1);
+          playRevive();
+          setScreen('playing');
+          nextQ();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   const reviveWithInvite = () => {
@@ -1725,7 +1766,7 @@ export default function App() {
   const OB_STEPS_DATA = [
     { emoji:'⏱️', title:'זמן לתשובה', text:'יש לכם 20 שניות לענות.\nככל שעונים מהר יותר — יותר נקודות!\nהטיימר מתקצר עם כל תשובה נכונה ⚡' },
     { emoji:'🪙', title:'ניקוד', text:'הניקוד = הזמן שנשאר × 10\nענו מהר = יותר נקודות!\nמינימום 10 נקודות על כל תשובה נכונה.' },
-    { emoji:'❤️', title:'חיים', text:'מתחילים עם 3 ❤️\nכל טעות או שנגמר הזמן = מאבדים חיים.\nנגמרו? קנו בנקודות או שלחו אתגר לחבר!' },
+    { emoji:'❤️', title:'חיים', text:'מתחילים עם 3 ❤️\nכל טעות או שנגמר הזמן = מאבדים חיים.\nנגמרו? חכו דקה לחיים, קנו 3 בנקודות, או שלחו אתגר!' },
     { emoji:'🔥', title:'רצף בונוס', text:'ענו נכון ברצף — ותראו קומבו אימוג\'ים!\n5 ברצף = הקושי עולה = יותר נקודות!' },
     { emoji:'💡', title:'רמז', text:'תקועים בשאלה?\nלחצו על 💡 בפינת השאלה לקבלת רמז!' }
   ];
@@ -2412,23 +2453,35 @@ export default function App() {
               </div>
             </div>
 
-            <p className="text-sm text-gray-400 text-center slide-up" style={{animationDelay:'0.1s'}}>
-              רוצה להמשיך לשחק?
+            {/* Wait timer for 1 free life */}
+            {waitingForLife && (
+              <div className="w-72 py-4 rounded-2xl text-center border-2 slide-up"
+                style={{borderColor:'#ff0080',color:'#ff0080',background:'rgba(255,0,128,0.06)',animationDelay:'0.1s'}}>
+                <div className="text-sm text-gray-400 mb-1">חיים חדש בעוד</div>
+                <div className="text-4xl font-black" style={{fontFamily:"'Orbitron',sans-serif",color:'#ff0080',textShadow:'0 0 15px rgba(255,0,128,0.5)'}}>
+                  {Math.floor(waitCountdown/60)}:{String(waitCountdown%60).padStart(2,'0')}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">⏳ מקבלים ❤️ אחד אוטומטית</div>
+              </div>
+            )}
+
+            <p className="text-sm text-gray-400 text-center slide-up" style={{animationDelay:'0.12s'}}>
+              לא רוצה לחכות?
             </p>
 
-            {/* Buy life with points */}
+            {/* Buy 3 lives with points */}
             {gs.current.score >= REVIVE_COST ? (
               <button onClick={reviveWithPoints}
                 className="w-72 py-4 rounded-2xl text-lg font-black border-2 btn-option slide-up revive-pulse"
                 style={{borderColor:'#00e5ff',color:'#00e5ff',background:'rgba(0,229,255,0.08)',animationDelay:'0.15s'}}>
-                <div>קנה חיים ❤️</div>
-                <div className="text-sm font-bold mt-1" style={{color:'#ffaa00'}}>עולה {REVIVE_COST} נקודות 💰</div>
+                <div>קנה {REVIVE_POINTS_LIVES} חיים ❤️❤️❤️</div>
+                <div className="text-sm font-bold mt-1" style={{color:'#ffaa00'}}>עולה {REVIVE_COST.toLocaleString()} נקודות 💰</div>
               </button>
             ) : (
               <div className="w-72 py-4 rounded-2xl text-center border-2 slide-up opacity-40"
                 style={{borderColor:'#333',color:'#666',background:'rgba(255,255,255,0.02)',animationDelay:'0.15s'}}>
-                <div>קנה חיים ❤️</div>
-                <div className="text-sm mt-1">צריך {REVIVE_COST} נקודות (יש לך {gs.current.score})</div>
+                <div>קנה {REVIVE_POINTS_LIVES} חיים ❤️❤️❤️</div>
+                <div className="text-sm mt-1">צריך {REVIVE_COST.toLocaleString()} נקודות (יש לך {gs.current.score.toLocaleString()})</div>
               </div>
             )}
 
@@ -2473,7 +2526,7 @@ export default function App() {
               </div>
             )}
 
-            <button onClick={()=>{saveScore(); setScreen('gameover');}}
+            <button onClick={()=>{if(waitIntervalRef.current){clearInterval(waitIntervalRef.current);waitIntervalRef.current=null;} saveScore(); setScreen('gameover');}}
               className="py-3 px-8 rounded-2xl text-base font-bold border-2 btn-option slide-up"
               style={{borderColor:'#ff0080',color:'#ff0080',background:'rgba(255,0,128,0.06)',animationDelay:'0.3s'}}>
               סיים משחק 🏁
