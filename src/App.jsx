@@ -16,6 +16,15 @@ const LIFE_EARN_STREAK = 7;
 const AD_WATCH_SECONDS = 5; // simulated ad duration until real ads connected
 const REVIVE_AD_LIMIT = 1;  // max free revives via ad per game
 
+// ── Power-Up Constants ──────────────────────
+const BOOST_STREAK = 5;     // every 5 correct in a row → boost
+const FREEZE_STREAK = 10;   // every 10 correct in a row → freeze
+const BOOST_SECONDS = 5;    // boost adds 5 seconds
+const FRIEND_SECONDS = 10;  // friend invite adds 10 seconds
+const BOOST_MAX = 3;        // max boosts you can hold
+const FREEZE_MAX = 2;       // max freezes you can hold
+const POWERUP_SCORE_MULT = 0.5; // score multiplier when power-up used
+
 // ── Sound Engine (Web Audio API) ─────────────
 let _actx = null;
 const actx = () => { if(!_actx) _actx = new (window.AudioContext||window.webkitAudioContext)(); return _actx; };
@@ -96,6 +105,46 @@ const playRoundComplete = () => {
       g.gain.setValueAtTime(0.18,c.currentTime+i*0.12);
       g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+i*0.12+0.2);
       o.start(c.currentTime+i*0.12); o.stop(c.currentTime+i*0.12+0.2);
+    });
+  } catch(e){}
+};
+
+const playPowerUpGain = () => {
+  try {
+    const c = actx(), o = c.createOscillator(), g = c.createGain();
+    o.connect(g); g.connect(c.destination); o.type='sine';
+    o.frequency.setValueAtTime(660,c.currentTime);
+    o.frequency.setValueAtTime(880,c.currentTime+0.08);
+    o.frequency.setValueAtTime(1100,c.currentTime+0.16);
+    g.gain.setValueAtTime(0.2,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.35);
+    o.start(c.currentTime); o.stop(c.currentTime+0.35);
+    if(navigator.vibrate) navigator.vibrate([30,20,30]);
+  } catch(e){}
+};
+
+const playBoostUse = () => {
+  try {
+    const c = actx(), o = c.createOscillator(), g = c.createGain();
+    o.connect(g); g.connect(c.destination); o.type='sawtooth';
+    o.frequency.setValueAtTime(400,c.currentTime);
+    o.frequency.exponentialRampToValueAtTime(1200,c.currentTime+0.2);
+    g.gain.setValueAtTime(0.15,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.3);
+    o.start(c.currentTime); o.stop(c.currentTime+0.3);
+  } catch(e){}
+};
+
+const playFreezeUse = () => {
+  try {
+    const c = actx();
+    [1200,1000,800,600].forEach((freq,i) => {
+      const o = c.createOscillator(), g = c.createGain();
+      o.connect(g); g.connect(c.destination); o.type='sine';
+      o.frequency.setValueAtTime(freq,c.currentTime+i*0.06);
+      g.gain.setValueAtTime(0.12,c.currentTime+i*0.06);
+      g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+i*0.06+0.15);
+      o.start(c.currentTime+i*0.06); o.stop(c.currentTime+i*0.06+0.15);
     });
   } catch(e){}
 };
@@ -1179,6 +1228,16 @@ export default function App() {
   const [showPrize,setShowPrize] = useState(false);
   const [prizePoints,setPrizePoints] = useState(0);
   const [savedGame,setSavedGame] = useState(()=>{ try{const s=localStorage.getItem('math-blitz-save');return s?JSON.parse(s):null;}catch{return null;} });
+  const [boostCount,setBoostCount] = useState(0);
+  const [freezeCount,setFreezeCount] = useState(1);
+  const [activeFreeze,setActiveFreeze] = useState(false);
+  const [usedPowerUp,setUsedPowerUp] = useState(false);
+  const [invitedContacts,setInvitedContacts] = useState(()=>{ try{return JSON.parse(localStorage.getItem('math-blitz-invited')||'[]');}catch{return [];} });
+  const [showFriendTooltip,setShowFriendTooltip] = useState(false);
+  const [powerUpGainAnim,setPowerUpGainAnim] = useState(null);
+  const [friendPickerOpen,setFriendPickerOpen] = useState(false);
+  const [friendError,setFriendError] = useState('');
+  const frozenTimeRef = useRef(null);
   const [showResumeModal,setShowResumeModal] = useState(false);
   const [duelMode,setDuelMode] = useState(false);
   const [duelPlayer,setDuelPlayer] = useState(1);
@@ -1228,11 +1287,13 @@ export default function App() {
 
   const startGame = () => {
     setDuelMode(false);
-    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:20,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics],totalCorrect:0,totalStreak:0};
+    gs.current = {score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:20,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0,selectedTopics:[...selectedTopics],totalCorrect:0,totalStreak:0,boostCount:0,freezeCount:1,usedPowerUp:false};
     setScore(0); setStreak(0); setMaxStreak(0); setAnswered(0);
     setLives(START_LIVES); setInvitesUsed(0); setAdsUsed(0); setTotalCorrect(0);
     setRoundNum(1); setRoundCorrect(0); setGainedLife(false);
+    setBoostCount(0); setFreezeCount(1); setActiveFreeze(false); setUsedPowerUp(false);
     setIsHigh(false); setFeedback(null); setSelIdx(null); setCombo('');
+    frozenTimeRef.current = null;
     clearSave();
     setScreen('playing');
     nextQ();
@@ -1244,12 +1305,21 @@ export default function App() {
     setFeedback(null);
     setSelIdx(null);
     setHintVisible(false);
+    setActiveFreeze(false);
+    setUsedPowerUp(false);
+    gs.current.usedPowerUp = false;
+    frozenTimeRef.current = null;
     charReact('think', 0);
     setTimeLeft(gs.current.dur);
     endTimeRef.current = Date.now() + gs.current.dur * 1000;
     lastTickRef.current = Math.ceil(gs.current.dur);
     cancelAnimationFrame(rafRef.current);
     const tick = () => {
+      if(frozenTimeRef.current !== null) {
+        setTimeLeft(frozenTimeRef.current);
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
       const rem = Math.max(0,(endTimeRef.current - Date.now())/1000);
       setTimeLeft(rem);
       const sec = Math.ceil(rem);
@@ -1272,6 +1342,7 @@ export default function App() {
 
   const handleTimeout = () => {
     cancelAnimationFrame(rafRef.current);
+    frozenTimeRef.current = null;
     setFeedback('timeout');
     setShaking(true);
     setTimeout(()=>setShaking(false),400);
@@ -1317,6 +1388,7 @@ export default function App() {
   const handleAnswer = (idx) => {
     if(feedback) return;
     cancelAnimationFrame(rafRef.current);
+    frozenTimeRef.current = null;
     setSelIdx(idx);
     const g = gs.current;
     g.answered++;
@@ -1324,7 +1396,8 @@ export default function App() {
     if(idx === question.correctIdx) {
       playCorrect();
       setFeedback('correct');
-      g.score += Math.max(10, Math.round(timeLeft * 10));
+      const scoreMult = g.usedPowerUp ? POWERUP_SCORE_MULT : 1;
+      g.score += Math.max(10, Math.round(timeLeft * 10 * scoreMult));
       g.streak++; g.wrongStreak = 0;
       g.roundCorrect++;
       g.totalCorrect = (g.totalCorrect||0) + 1;
@@ -1341,6 +1414,20 @@ export default function App() {
         setGainedLife(true);
         playLifeGain();
         setTimeout(()=>setGainedLife(false), 1200);
+      }
+
+      // Award power-ups on totalStreak
+      if(g.totalStreak > 0 && g.totalStreak % FREEZE_STREAK === 0 && g.freezeCount < FREEZE_MAX) {
+        g.freezeCount++;
+        setFreezeCount(g.freezeCount);
+        playPowerUpGain();
+        setPowerUpGainAnim('freeze');
+        setTimeout(()=>setPowerUpGainAnim(null), 1500);
+      }
+      if(g.totalStreak > 0 && g.totalStreak % BOOST_STREAK === 0 && g.boostCount < BOOST_MAX) {
+        g.boostCount++;
+        setBoostCount(g.boostCount);
+        if(!powerUpGainAnim) { playPowerUpGain(); setPowerUpGainAnim('boost'); setTimeout(()=>setPowerUpGainAnim(null), 1500); }
       }
 
       charReact('correct', g.streak);
@@ -1457,6 +1544,86 @@ export default function App() {
     }, 1000);
   };
 
+  // ── Power-Up Functions ──────────────────────
+  const useBoost = () => {
+    const g = gs.current;
+    if(g.boostCount <= 0 || feedback || g.usedPowerUp) return;
+    g.boostCount--;
+    g.usedPowerUp = true;
+    setBoostCount(g.boostCount);
+    setUsedPowerUp(true);
+    endTimeRef.current += BOOST_SECONDS * 1000;
+    playBoostUse();
+  };
+
+  const useFreeze = () => {
+    const g = gs.current;
+    if(g.freezeCount <= 0 || feedback || g.usedPowerUp) return;
+    g.freezeCount--;
+    g.usedPowerUp = true;
+    setFreezeCount(g.freezeCount);
+    setUsedPowerUp(true);
+    setActiveFreeze(true);
+    frozenTimeRef.current = timeLeft;
+    playFreezeUse();
+  };
+
+  const inviteFriend = async () => {
+    const g = gs.current;
+    if(feedback) return;
+    // Show tooltip on first use
+    const seenTooltip = localStorage.getItem('math-blitz-friend-tooltip');
+    if(!seenTooltip) {
+      setShowFriendTooltip(true);
+      localStorage.setItem('math-blitz-friend-tooltip','1');
+      setTimeout(()=>setShowFriendTooltip(false), 3000);
+    }
+    // Try Contact Picker API
+    if('contacts' in navigator && 'ContactsManager' in window) {
+      try {
+        const contacts = await navigator.contacts.select(['name','tel'], {multiple:false});
+        if(contacts && contacts.length > 0) {
+          const contact = contacts[0];
+          const phone = contact.tel && contact.tel[0] ? contact.tel[0].replace(/[^0-9+]/g,'') : '';
+          const name = contact.name && contact.name[0] ? contact.name[0] : 'חבר';
+          if(!phone) { setFriendError('לא נמצא מספר טלפון'); setTimeout(()=>setFriendError(''),2500); return; }
+          if(invitedContacts.includes(phone)) {
+            setFriendError('כבר הזמנת את '+name+'! בחר חבר אחר 😉');
+            setTimeout(()=>setFriendError(''),2500);
+            return;
+          }
+          // Success — add contact, add time, open WhatsApp
+          const newInvited = [...invitedContacts, phone];
+          setInvitedContacts(newInvited);
+          try{localStorage.setItem('math-blitz-invited',JSON.stringify(newInvited));}catch{}
+          endTimeRef.current += FRIEND_SECONDS * 1000;
+          if(frozenTimeRef.current !== null) frozenTimeRef.current += FRIEND_SECONDS;
+          playPowerUpGain();
+          const pName = playerName || 'חבר';
+          const txt = '⚡ '+pName+' מזמין אותך למתמטיקה בלייז! 🧠\n\nמשחק מתמטיקה סופר ממכר — תנסה לנצח אותי!\n\nhttps://sivanrab-eng.github.io/Math-blitz-app/?v=3';
+          const cleanPhone = phone.startsWith('+') ? phone.slice(1) : phone;
+          window.open('https://wa.me/'+cleanPhone+'?text='+encodeURIComponent(txt),'_blank');
+        }
+      } catch(e) {
+        // Fallback or user cancelled
+        fallbackFriendInvite();
+      }
+    } else {
+      // Fallback — open WhatsApp chooser
+      fallbackFriendInvite();
+    }
+  };
+
+  const fallbackFriendInvite = () => {
+    const pName = playerName || 'חבר';
+    const txt = '⚡ '+pName+' מזמין אותך למתמטיקה בלייז! 🧠\n\nמשחק מתמטיקה סופר ממכר — תנסה לנצח אותי!\n\nhttps://sivanrab-eng.github.io/Math-blitz-app/?v=3';
+    window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+    // Since we can't verify the number, still grant the bonus
+    endTimeRef.current += FRIEND_SECONDS * 1000;
+    if(frozenTimeRef.current !== null) frozenTimeRef.current += FRIEND_SECONDS;
+    playPowerUpGain();
+  };
+
   const endGame = () => {
     cancelAnimationFrame(rafRef.current);
     clearTimeout(feedbackTimer.current);
@@ -1569,6 +1736,7 @@ export default function App() {
     const g = gs.current;
     const state = {score:g.score,streak:g.streak,maxStreak:g.maxStreak,diff:g.diff,dur:g.dur,answered:g.answered,
       lives:g.lives,roundCorrect:g.roundCorrect,totalCorrect:g.totalCorrect||0,
+      boostCount:g.boostCount||0,freezeCount:g.freezeCount||0,
       grade,selectedTopics:[...g.selectedTopics],roundNum,timestamp:Date.now()};
     try{localStorage.setItem('math-blitz-save',JSON.stringify(state));}catch{}
     setSavedGame(state);
@@ -1579,9 +1747,11 @@ export default function App() {
     const s = savedGame;
     gs.current = {score:s.score,streak:s.streak,maxStreak:s.maxStreak,wrongStreak:0,diff:s.diff,dur:s.dur,
       answered:s.answered,lives:s.lives,invitesUsed:0,roundCorrect:s.roundCorrect,adsUsed:0,
-      selectedTopics:s.selectedTopics,totalCorrect:s.totalCorrect||0,totalStreak:s.streak||0};
+      selectedTopics:s.selectedTopics,totalCorrect:s.totalCorrect||0,totalStreak:s.streak||0,
+      boostCount:s.boostCount||0,freezeCount:s.freezeCount||0,usedPowerUp:false};
     setScore(s.score); setStreak(s.streak); setMaxStreak(s.maxStreak); setAnswered(s.answered);
     setLives(s.lives); setRoundNum(s.roundNum||1); setRoundCorrect(s.roundCorrect);
+    setBoostCount(s.boostCount||0); setFreezeCount(s.freezeCount||0);
     setTotalCorrect(s.totalCorrect||0); setGrade(s.grade||6);
     setSelectedTopics(s.selectedTopics);
     setIsHigh(false); setFeedback(null); setSelIdx(null); setCombo('');
@@ -1713,6 +1883,8 @@ export default function App() {
         .install-pulse{animation:installPulse 1.8s ease-in-out infinite}
         .prize-box{animation:prizeFloat 2s ease-in-out infinite}
         .prize-appear{animation:prizeIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275)}
+        @keyframes freezePulse{0%,100%{box-shadow:0 0 15px rgba(125,211,252,0.3)}50%{box-shadow:0 0 35px rgba(125,211,252,0.6)}}
+        .freeze-active{animation:freezePulse 1s ease infinite}
         .hint-bubble{position:absolute;bottom:100%;right:0;left:0;margin-bottom:8px;padding:10px 14px;border-radius:14px;background:rgba(26,10,62,0.95);border:2px solid #fbbf24;color:#fef3c7;font-size:13px;font-weight:700;line-height:1.5;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);z-index:20}
         .explain-box{margin-top:8px;padding:10px 14px;border-radius:14px;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.15);text-align:right}
         .explain-title{font-size:11px;color:#a78bfa;font-weight:800;margin-bottom:4px}
@@ -1798,6 +1970,7 @@ export default function App() {
                 <span>{ROUND_SIZE} שאלות בסיבוב</span>
               </div>
               <div className="text-xs text-gray-500">{LIFE_EARN_STREAK} נכונות ברצף = +❤️ בונוס (עד {MAX_LIVES})</div>
+              <div className="text-xs text-gray-500">⚡ כל {BOOST_STREAK} ברצף = בוסט • ❄️ כל {FREEZE_STREAK} ברצף = הקפאה</div>
             </div>
 
             <button onClick={()=>{ if(savedGame) setShowResumeModal(true); else startGame(); }}
@@ -1865,13 +2038,77 @@ export default function App() {
             </div>
 
             {/* Timer Bar */}
-            <div className="w-full h-2 rounded-full bg-gray-900 mb-4 overflow-hidden border border-gray-800">
+            <div className={"w-full h-2 rounded-full bg-gray-900 mb-4 overflow-hidden border "+(activeFreeze?'border-cyan-400 freeze-active':'border-gray-800')}>
               <div className="h-full rounded-full"
-                style={{width:(timerFrac*100)+'%',background:timerColor,boxShadow:'0 0 12px '+timerColor,transition:'width 0.1s linear, background-color 0.3s'}}/>
+                style={{width:(timerFrac*100)+'%',background:activeFreeze?'#7dd3fc':timerColor,boxShadow:'0 0 12px '+(activeFreeze?'#7dd3fc':timerColor),transition:'width 0.1s linear, background-color 0.3s'}}/>
             </div>
 
             <div className="text-center mb-1">
-              <span className="text-xs text-gray-500">{Math.ceil(timeLeft)} שניות</span>
+              <span className="text-xs text-gray-500">{activeFreeze ? '❄️ הוקפא!' : Math.ceil(timeLeft)+' שניות'}</span>
+            </div>
+
+            {/* Power-Up Bar */}
+            <div className="flex items-center justify-center gap-2 mb-2 relative">
+              <button onClick={useFreeze} disabled={freezeCount<=0||!!feedback||usedPowerUp}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl border-2 btn-option text-xs font-bold transition-all"
+                style={{
+                  borderColor: freezeCount>0 && !feedback && !usedPowerUp ? '#7dd3fc' : 'rgba(255,255,255,0.1)',
+                  background: freezeCount>0 && !feedback && !usedPowerUp ? 'rgba(125,211,252,0.12)' : 'rgba(255,255,255,0.02)',
+                  color: freezeCount>0 && !feedback && !usedPowerUp ? '#7dd3fc' : '#555',
+                  boxShadow: freezeCount>0 && !feedback && !usedPowerUp ? '0 0 10px rgba(125,211,252,0.25)' : 'none',
+                  opacity: freezeCount<=0||!!feedback||usedPowerUp ? 0.5 : 1,
+                }}>
+                <span>❄️</span><span>{freezeCount}</span>
+              </button>
+
+              <button onClick={useBoost} disabled={boostCount<=0||!!feedback||usedPowerUp}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl border-2 btn-option text-xs font-bold transition-all"
+                style={{
+                  borderColor: boostCount>0 && !feedback && !usedPowerUp ? '#fbbf24' : 'rgba(255,255,255,0.1)',
+                  background: boostCount>0 && !feedback && !usedPowerUp ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.02)',
+                  color: boostCount>0 && !feedback && !usedPowerUp ? '#fbbf24' : '#555',
+                  boxShadow: boostCount>0 && !feedback && !usedPowerUp ? '0 0 10px rgba(251,191,36,0.25)' : 'none',
+                  opacity: boostCount<=0||!!feedback||usedPowerUp ? 0.5 : 1,
+                }}>
+                <span>⚡</span><span>{boostCount}</span>
+              </button>
+
+              <button onClick={inviteFriend} disabled={!!feedback}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl border-2 btn-option text-xs font-bold transition-all"
+                style={{
+                  borderColor: !feedback ? '#25D366' : 'rgba(255,255,255,0.1)',
+                  background: !feedback ? 'rgba(37,211,102,0.12)' : 'rgba(255,255,255,0.02)',
+                  color: !feedback ? '#25D366' : '#555',
+                  boxShadow: !feedback ? '0 0 10px rgba(37,211,102,0.25)' : 'none',
+                  opacity: !!feedback ? 0.5 : 1,
+                }}>
+                <span>🆘</span><span style={{fontSize:'10px'}}>+{FRIEND_SECONDS}s</span>
+              </button>
+
+              {/* Friend tooltip */}
+              {showFriendTooltip && (
+                <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold pop-in z-30"
+                  style={{background:'rgba(37,211,102,0.95)',color:'#fff',boxShadow:'0 4px 12px rgba(0,0,0,0.4)'}}>
+                  כל פעם חבר חדש = עוד {FRIEND_SECONDS} שניות ⏱️
+                </div>
+              )}
+
+              {/* Friend error */}
+              {friendError && (
+                <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold pop-in z-30"
+                  style={{background:'rgba(239,68,68,0.95)',color:'#fff',boxShadow:'0 4px 12px rgba(0,0,0,0.4)'}}>
+                  {friendError}
+                </div>
+              )}
+
+              {/* Power-up gain animation */}
+              {powerUpGainAnim && (
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-sm font-black pop-in"
+                  style={{color: powerUpGainAnim==='freeze' ? '#7dd3fc' : '#fbbf24',
+                    textShadow: '0 0 12px '+(powerUpGainAnim==='freeze' ? 'rgba(125,211,252,0.6)' : 'rgba(251,191,36,0.6)')}}>
+                  +1 {powerUpGainAnim==='freeze' ? '❄️' : '⚡'}
+                </div>
+              )}
             </div>
 
             <div className="text-center mb-3">
@@ -1940,7 +2177,7 @@ export default function App() {
 
             {feedback==='correct' && (
               <div className="text-center mt-3 pop-in">
-                <span className="text-lg font-black" style={{color:'#00e5ff'}}>נכון! 🎯 +{Math.max(10,Math.round(timeLeft*10))}</span>
+                <span className="text-lg font-black" style={{color:'#00e5ff'}}>נכון! 🎯 +{Math.max(10,Math.round(timeLeft*10*(usedPowerUp?POWERUP_SCORE_MULT:1)))}{usedPowerUp?' (×0.5)':''}</span>
               </div>
             )}
             {gainedLife && (
