@@ -28,6 +28,45 @@ const BOOST_MAX = 3;        // max boosts you can hold
 const FREEZE_MAX = 2;       // max freezes you can hold
 const POWERUP_SCORE_MULT = 0.5; // score multiplier when power-up used
 
+// ── Leaderboard Bot System ───────────────────
+const LB_BOT_NAMES = ['דניאל','נועה','עידן','מאיה','אלון','שי','רוני','טל','אור','יעל','עמית','גיל','ליאם','שרה','מיכאל','תמר','איתי','הילה','עומר','ליה'];
+const LB_LAUNCH_DATE = '2025-06-01';
+const LB_BASE_PLAYERS = 184;
+const LB_GROWTH_RATE = 4.3;
+const LB_GROWTH_ACCEL = 0.6;
+
+const generateBotScores = (stageIdx, playerScore) => {
+  // Deterministic bots — same stage always produces same scores
+  return LB_BOT_NAMES.map((name, i) => {
+    const seed = (stageIdx + 1) * 137 + (i + 1) * 53;
+    const base = (stageIdx + 1) * 120;
+    const s = base + ((seed * 31 + 17) % (base + 300));
+    // Scale some bots near player score for competitiveness
+    const scaled = i < 5 ? Math.round(s * 0.8 + playerScore * 0.4) : s;
+    return { name, score: Math.max(scaled, 10), isBot: true };
+  }).sort((a, b) => b.score - a.score);
+};
+
+const getLBPlayerCount = () => {
+  const launch = new Date(LB_LAUNCH_DATE).getTime();
+  const days = Math.max(0, (Date.now() - launch) / 864e5);
+  let base = LB_BASE_PLAYERS + Math.floor(days * LB_GROWTH_RATE + Math.pow(days, 1.15) * LB_GROWTH_ACCEL + Math.sin(days * 0.7) * 7);
+  try { base += parseInt(localStorage.getItem('math-blitz-lbCount') || '0'); } catch(e) {}
+  return base;
+};
+
+const addLBPlayer = (name) => {
+  if (!name || name === DEFAULT_NAME) return;
+  try {
+    const names = JSON.parse(localStorage.getItem('math-blitz-lbNames') || '[]');
+    if (names.indexOf(name) === -1) {
+      names.push(name);
+      localStorage.setItem('math-blitz-lbNames', JSON.stringify(names));
+      localStorage.setItem('math-blitz-lbCount', String(names.length));
+    }
+  } catch(e) {}
+};
+
 // ── Sound Engine (Web Audio API) ─────────────
 let _actx = null;
 const actx = () => { if(!_actx) _actx = new (window.AudioContext||window.webkitAudioContext)(); return _actx; };
@@ -1483,6 +1522,9 @@ export default function App() {
   const [practiceCorrectCount,setPracticeCorrectCount] = useState(0);
   const [practiceQCount,setPracticeQCount] = useState(0);
   const [spotlightRect,setSpotlightRect] = useState(null);
+  const [showLB,setShowLB] = useState(false);
+  const [lbData,setLBData] = useState(null);
+  const lbContinueFn = useRef(null);
   const deferredPrompt = useRef(null);
 
   const gs = useRef({score:0,streak:0,maxStreak:0,wrongStreak:0,diff:'easy',dur:20,answered:0,lives:START_LIVES,invitesUsed:0,roundCorrect:0,adsUsed:0});
@@ -1912,24 +1954,60 @@ export default function App() {
   const endGame = () => {
     cancelAnimationFrame(rafRef.current);
     clearTimeout(feedbackTimer.current);
-    setScreen('gameover');
     saveScore();
+    // Show leaderboard overlay, then game over screen
+    showLeaderboardOverlay('סיום משחק', '🏆', () => {
+      setScreen('gameover');
+    });
+  };
+
+  // ── Leaderboard Overlay ─────────────────────
+  const showLeaderboardOverlay = (heading, emoji, onContinue) => {
+    const g = gs.current;
+    const stageIdx = Math.max(0, Math.ceil(g.answered / ROUND_SIZE) - 1);
+    const bots = generateBotScores(stageIdx, g.score);
+    const all = [...bots];
+    all.push({ name: playerName || DEFAULT_NAME, score: g.score, isBot: false, isMe: true });
+    all.sort((a, b) => b.score - a.score);
+    const myRank = all.findIndex(e => e.isMe);
+    const total = Math.max(all.length, getLBPlayerCount());
+    addLBPlayer(playerName);
+    setLBData({ heading, emoji, all, myRank, myRankDisplay: myRank + 1, total, topScore: all[0].score, playerScore: g.score });
+    lbContinueFn.current = onContinue;
+    setShowLB(true);
+  };
+
+  const closeLB = () => {
+    setShowLB(false);
+    if(lbContinueFn.current) { const fn = lbContinueFn.current; lbContinueFn.current = null; fn(); }
+  };
+
+  const shareDuelFromLB = () => {
+    if(window.gtag) window.gtag('event','share_whatsapp',{event_category:'sharing',event_label:'lb_challenge',score:gs.current.score});
+    const name = playerName || DEFAULT_NAME;
+    const g = gs.current;
+    const acc = g.answered > 0 ? Math.round((g.totalCorrect||0)/g.answered*100) : 0;
+    const txt = '⚔️ אתגר מתמטי ⚔️\n\n'+name+' השיג '+g.score+' נקודות!\nרצף: '+g.maxStreak+' 🔥 | דיוק: '+acc+'% 🎯\n\nתנסה לנצח אותי? 😏\n\nhttps://sivanrab-eng.github.io/Math-blitz-app/?v=3';
+    window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
   };
 
   const continueNextRound = () => {
     const g = gs.current;
+    const currentRound = roundNum;
     g.roundCorrect = 0;
     setRoundCorrect(0);
     setRoundNum(prev => prev + 1);
     setFeedback(null); setSelIdx(null);
-    // Show interstitial ad every 2 rounds
-    const nextRound = Math.ceil(g.answered / ROUND_SIZE) + 1;
-    if(nextRound % 2 === 0) {
-      showInterstitialAd(() => { setScreen('playing'); nextQ(); });
-    } else {
-      setScreen('playing');
-      nextQ();
-    }
+    // Show leaderboard overlay first, then continue to next round
+    showLeaderboardOverlay('סיבוב ' + currentRound + ' הושלם!', '🏅', () => {
+      const nextRound = Math.ceil(g.answered / ROUND_SIZE) + 1;
+      if(nextRound % 2 === 0) {
+        showInterstitialAd(() => { setScreen('playing'); nextQ(); });
+      } else {
+        setScreen('playing');
+        nextQ();
+      }
+    });
   };
 
   const _doShareWhatsApp = () => {
@@ -2181,6 +2259,7 @@ export default function App() {
   const saveName = (name) => {
     setPlayerName(name);
     try { localStorage.setItem('math-blitz-name', name); } catch{}
+    addLBPlayer(name);
   };
 
   const isDefaultName = () => !playerName || playerName === DEFAULT_NAME;
@@ -2364,6 +2443,12 @@ export default function App() {
         .explain-box{margin-top:8px;padding:10px 14px;border-radius:14px;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.15);text-align:right}
         .explain-title{font-size:11px;color:#a78bfa;font-weight:800;margin-bottom:4px}
         .explain-formula{margin-top:6px;padding:6px 10px;border-radius:10px;background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.3);font-size:12px;font-weight:800;color:#c4b5fd;text-align:center}
+        @keyframes lbIconPop{0%{transform:scale(0)}100%{transform:scale(1)}}
+        @keyframes lbRowSlide{0%{opacity:0;transform:translateX(20px)}100%{opacity:1;transform:translateX(0)}}
+        @keyframes lbShimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+        .lb-icon-pop{animation:lbIconPop 0.4s cubic-bezier(0.175,0.885,0.32,1.275)}
+        .lb-row-slide{animation:lbRowSlide 0.35s ease both}
+        .lb-shimmer{background:linear-gradient(90deg,#fbbf24,#f59e0b,#fbbf24,#f59e0b);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:lbShimmer 3s linear infinite}
       `}</style>
 
       <div className="grid-bg fixed inset-0 pointer-events-none"/>
@@ -2983,7 +3068,7 @@ export default function App() {
               style={{borderColor:'#00e5ff',color:'#00e5ff',background:'rgba(0,229,255,0.08)',animationDelay:'0.25s'}}>
               סיבוב {roundNum + 1} ⚡
             </button>
-            <button onClick={()=>{saveScore(); setScreen('gameover');}}
+            <button onClick={()=>{saveScore(); showLeaderboardOverlay('סיום משחק','🏆',()=>setScreen('gameover'));}}
               className="py-3 px-8 rounded-2xl text-base font-bold border-2 btn-option slide-up"
               style={{borderColor:'#ff0080',color:'#ff0080',background:'rgba(255,0,128,0.06)',animationDelay:'0.3s'}}>
               סיים משחק 🏁
@@ -3172,7 +3257,7 @@ export default function App() {
               </div>
             )}
 
-            <button onClick={()=>{if(waitIntervalRef.current){clearInterval(waitIntervalRef.current);waitIntervalRef.current=null;} saveScore(); setScreen('gameover');}}
+            <button onClick={()=>{if(waitIntervalRef.current){clearInterval(waitIntervalRef.current);waitIntervalRef.current=null;} saveScore(); showLeaderboardOverlay('סיום משחק','🏆',()=>setScreen('gameover'));}}
               className="py-3 px-8 rounded-2xl text-base font-bold border-2 btn-option slide-up"
               style={{borderColor:'#ff0080',color:'#ff0080',background:'rgba(255,0,128,0.06)',animationDelay:'0.3s'}}>
               סיים משחק 🏁
@@ -3235,51 +3320,74 @@ export default function App() {
         })()}
 
         {/* ── LEADERBOARD ───────────────── */}
-        {screen === 'leaderboard' && (
+        {screen === 'leaderboard' && (() => {
+          // Merge real scores with bots for a competitive feel
+          const bestScore = board.length > 0 ? board[0].s : 0;
+          const bots = generateBotScores(2, bestScore);
+          const merged = bots.map(b => ({n:b.name,s:b.score,isBot:true}));
+          // Add real player scores
+          board.forEach(e => {
+            merged.push({n:e.n||DEFAULT_NAME,s:e.s,st:e.st,d:e.d,isBot:false,isReal:true});
+          });
+          merged.sort((a,b) => b.s - a.s);
+          const top12 = merged.slice(0,12);
+          const total = getLBPlayerCount();
+          return (
           <div className="flex-1 flex flex-col px-6 pt-8 pb-6 max-w-lg mx-auto w-full">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-2">
               <button onClick={()=>setScreen('menu')} className="text-gray-500 text-sm px-3 py-1 rounded-lg border border-gray-800 btn-option">
                 חזרה ←
               </button>
               <h2 className="text-xl font-black glow-pink" style={{color:'#ff0080'}}>🏆 טבלת שיאים</h2>
               <div className="w-16"/>
             </div>
-            {board.length === 0 ? (
+            <div className="text-center text-xs mb-4" style={{color:'rgba(255,255,255,0.4)'}}>{total} שחקנים</div>
+            {top12.length === 0 ? (
               <div className="flex-1 flex items-center justify-center">
                 <p className="text-gray-600 text-center">עדיין אין שיאים<br/>שחק כדי להיכנס לטבלה!</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {board.map((e,i) => (
-                  <div key={e.id} className="flex items-center gap-3 rounded-xl py-3 px-4 border slide-up"
-                    style={{borderColor: i===0 ? 'rgba(0,229,255,0.3)' : 'rgba(255,255,255,0.06)',
-                      background: i===0 ? 'rgba(0,229,255,0.05)' : 'rgba(255,255,255,0.02)',
-                      animationDelay:(i*0.05)+'s'}}>
-                    <span className="text-lg font-bold w-8 text-center" style={{color:i===0?'#00e5ff':i===1?'#ff0080':'#888',fontFamily:"'Orbitron',sans-serif"}}>
-                      {i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}
+              <div className="space-y-2 flex-1 overflow-auto">
+                {top12.map((e,i) => {
+                  const isPlayer = e.isReal;
+                  const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':null;
+                  const borderCol = isPlayer ? 'rgba(0,229,255,0.4)' : i===0 ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.06)';
+                  const bgCol = isPlayer ? 'rgba(0,229,255,0.06)' : i===0 ? 'rgba(251,191,36,0.05)' : 'rgba(255,255,255,0.02)';
+                  return (
+                  <div key={i} className="flex items-center gap-3 rounded-xl py-3 px-4 border lb-row-slide"
+                    style={{borderColor:borderCol,background:bgCol,animationDelay:(i*0.04)+'s',
+                      boxShadow:isPlayer?'0 0 12px rgba(0,229,255,0.15)':'none'}}>
+                    <span className="text-lg font-bold w-8 text-center" style={{color:i===0?'#fbbf24':i===1?'#94a3b8':i===2?'#fb923c':'#666',fontFamily:"'Orbitron',sans-serif"}}>
+                      {medal || (i+1)}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-bold truncate" style={{color:i===0?'#00e5ff':'#ccc',fontFamily:"'Heebo',sans-serif"}}>{e.n||DEFAULT_NAME}</div>
+                      <div className="text-sm font-bold truncate" style={{color:isPlayer?'#00e5ff':'#ccc',fontFamily:"'Heebo',sans-serif"}}>
+                        {e.n}{isPlayer && <span className="text-xs mr-1" style={{color:'#00e5ff'}}> (אתה)</span>}
+                      </div>
                       <div>
-                        <span className="font-bold" style={{fontFamily:"'Orbitron',sans-serif",color:i===0?'#00e5ff':'#fff'}}>{e.s}</span>
+                        <span className="font-bold" style={{fontFamily:"'Orbitron',sans-serif",color:isPlayer?'#00e5ff':'#fff'}}>{e.s}</span>
                         <span className="text-xs text-gray-500 mr-2">נקודות</span>
                       </div>
                     </div>
-                    <div className="text-left text-xs text-gray-500">
-                      <div>רצף {e.st} 🔥</div>
-                      <div>{e.d}</div>
-                    </div>
+                    {e.st != null && (
+                      <div className="text-left text-xs text-gray-500">
+                        <div>רצף {e.st} 🔥</div>
+                        {e.d && <div>{e.d}</div>}
+                      </div>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
             <button onClick={startGame}
-              className="mt-auto w-full py-4 rounded-2xl text-xl font-black border-2 glow-box-cyan btn-option"
+              className="mt-4 w-full py-4 rounded-2xl text-xl font-black border-2 glow-box-cyan btn-option"
               style={{borderColor:'#00e5ff',color:'#00e5ff',background:'rgba(0,229,255,0.08)'}}>
               שחק עכשיו ⚡
             </button>
           </div>
-        )}
+          );
+        })()}
 
         {/* ── DUEL SETUP ──────────────── */}
         {screen === 'duelSetup' && (
@@ -3406,6 +3514,96 @@ export default function App() {
               <div className="text-2xl font-black" style={{color:'#ffaa00',fontFamily:"'Orbitron',sans-serif"}}>{adCountdown}</div>
               <div className="text-xs text-gray-500 mt-1">ממשיכים עוד רגע...</div>
             </div>
+          </div>
+        )}
+
+        {/* ── LEADERBOARD OVERLAY ─────────── */}
+        {showLB && lbData && (
+          <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center" style={{background:'rgba(5,5,16,0.96)',backdropFilter:'blur(16px)',WebkitBackdropFilter:'blur(16px)',padding:16,overflow:'auto'}}>
+            {/* Header */}
+            <div className="text-center mb-4">
+              <div className="text-5xl lb-icon-pop">{lbData.emoji}</div>
+              <div className="text-2xl font-black mt-2 lb-shimmer" style={{fontFamily:"'Heebo',sans-serif"}}>{lbData.heading}</div>
+              <div className="text-sm mt-1" style={{color:'rgba(255,255,255,0.5)'}}>הניקוד שלך: <span style={{color:'#00e5ff',fontFamily:"'Orbitron',sans-serif",fontWeight:800}}>{lbData.playerScore}</span></div>
+            </div>
+
+            {/* Table — top 3 */}
+            <div className="w-full flex flex-col gap-2 mb-3" style={{maxWidth:400}}>
+              {lbData.all.slice(0, 3).map((entry, i) => {
+                const rank = i + 1;
+                const isMe = entry.isMe;
+                const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉';
+                const rowBg = isMe
+                  ? 'linear-gradient(135deg,rgba(0,229,255,0.15),rgba(0,136,204,0.1))'
+                  : rank === 1 ? 'linear-gradient(135deg,rgba(251,191,36,0.12),rgba(245,158,11,0.06))'
+                  : rank === 2 ? 'linear-gradient(135deg,rgba(148,163,184,0.1),rgba(100,116,139,0.05))'
+                  : 'linear-gradient(135deg,rgba(251,146,60,0.1),rgba(194,65,12,0.05))';
+                const borderCol = isMe ? '#00e5ff' : rank === 1 ? '#fbbf24' : rank === 2 ? '#94a3b8' : '#fb923c';
+                const rankBg = rank === 1 ? '#fbbf24' : rank === 2 ? '#94a3b8' : '#fb923c';
+                const rankColor = rank <= 2 ? '#1c1917' : '#fff';
+                return (
+                  <div key={i} className="lb-row-slide flex items-center gap-3 rounded-2xl py-3 px-4"
+                    style={{background:rowBg,border:`1.5px solid ${borderCol}`,animationDelay:(i*0.08)+'s',
+                      boxShadow:isMe?'0 0 16px rgba(0,229,255,0.25)':'none'}}>
+                    <div className="flex items-center justify-center rounded-full flex-shrink-0" style={{width:34,height:34,background:rankBg,color:rankColor,fontSize:15,fontWeight:900}}>
+                      {medal}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-base font-bold truncate" style={{color:isMe?'#00e5ff':'#fff',fontFamily:"'Heebo',sans-serif"}}>
+                        {entry.name}{isMe && <span className="text-xs mr-1" style={{color:'#00e5ff'}}> ← אתה!</span>}
+                      </div>
+                    </div>
+                    <div className="text-lg font-black" style={{color:'#fbbf24',fontFamily:"'Orbitron',sans-serif"}}>{entry.score}</div>
+                  </div>
+                );
+              })}
+
+              {/* If player not in top 3 — show separator and player row */}
+              {lbData.myRankDisplay > 3 && (
+                <>
+                  <div className="text-center text-lg" style={{color:'rgba(255,255,255,0.25)',letterSpacing:4}}>···</div>
+                  <div className="lb-row-slide flex items-center gap-3 rounded-2xl py-3 px-4"
+                    style={{background:'linear-gradient(135deg,rgba(0,229,255,0.15),rgba(0,136,204,0.1))',
+                      border:'1.5px solid #00e5ff',boxShadow:'0 0 16px rgba(0,229,255,0.25)',
+                      animationDelay:'0.3s'}}>
+                    <div className="flex items-center justify-center rounded-full flex-shrink-0" style={{width:34,height:34,background:'rgba(255,255,255,0.1)',color:'rgba(255,255,255,0.6)',fontSize:14,fontWeight:900}}>
+                      {lbData.myRankDisplay}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-base font-bold truncate" style={{color:'#00e5ff',fontFamily:"'Heebo',sans-serif"}}>
+                        {playerName || DEFAULT_NAME} <span className="text-xs" style={{color:'#00e5ff'}}>← אתה!</span>
+                      </div>
+                    </div>
+                    <div className="text-lg font-black" style={{color:'#fbbf24',fontFamily:"'Orbitron',sans-serif"}}>{lbData.playerScore}</div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Position summary */}
+            <div className="w-full text-center py-3 px-5 rounded-2xl mb-4 lb-row-slide" style={{maxWidth:400,background:'rgba(0,229,255,0.08)',border:'2px solid rgba(0,229,255,0.3)',animationDelay:'0.35s'}}>
+              <div className="text-sm font-bold" style={{color:'#a0d2db'}}>
+                המיקום שלך: <span className="text-lg font-black" style={{color:'#fbbf24',fontFamily:"'Orbitron',sans-serif"}}>#{lbData.myRankDisplay}</span> מתוך <span style={{color:'#00e5ff'}}>{lbData.total}</span> שחקנים
+              </div>
+              {lbData.myRankDisplay > 1 ? (
+                <div className="text-xs mt-1" style={{color:'rgba(255,255,255,0.35)'}}>🏆 ניקוד מקום ראשון: {lbData.topScore} נק׳</div>
+              ) : (
+                <div className="text-xs mt-1" style={{color:'#fbbf24'}}>🏆 אתה במקום הראשון!</div>
+              )}
+            </div>
+
+            {/* Buttons */}
+            <button onClick={shareDuelFromLB}
+              className="w-full py-3 rounded-2xl text-lg font-bold border-2 btn-option lb-row-slide mb-2"
+              style={{maxWidth:340,borderColor:'#25D366',color:'#25D366',background:'rgba(37,211,102,0.08)',
+                boxShadow:'0 0 15px rgba(37,211,102,0.2)',animationDelay:'0.4s'}}>
+              ⚔️ אתגר חבר בוואטסאפ
+            </button>
+            <button onClick={closeLB}
+              className="w-full py-4 rounded-2xl text-xl font-black border-2 glow-box-cyan btn-option lb-row-slide"
+              style={{maxWidth:340,borderColor:'#00e5ff',color:'#00e5ff',background:'rgba(0,229,255,0.08)',animationDelay:'0.45s'}}>
+              המשך ▶
+            </button>
           </div>
         )}
 
