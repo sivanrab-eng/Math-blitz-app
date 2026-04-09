@@ -2732,7 +2732,7 @@ export default function App() {
                     {sr && <rect x={sr.x} y={sr.y} width={sr.w} height={sr.h} rx="12" fill="black"/>}
                   </mask>
                 </defs>
-                <rect width="100%" height="100%" fill="rgba(5,5,16,0.42)" mask="url(#spotlight-mask)"/>
+                <rect width="100%" height="100%" fill="rgba(5,5,16,0.88)" mask="url(#spotlight-mask)"/>
                 {sr && <rect x={sr.x} y={sr.y} width={sr.w} height={sr.h} rx="12" fill="none" stroke="#00e5ff" strokeWidth="2.5" style={{animation:'obSpotPulse 2s ease-in-out infinite'}}/>}
               </svg>
               {/* Speech bubble */}
