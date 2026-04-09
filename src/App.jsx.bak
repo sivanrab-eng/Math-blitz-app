@@ -1046,260 +1046,42 @@ const genQuestion = (diff, selectedTopicIds) => {
   const topic = available.length > 0 ? pick(available) : topicFractions;
   const q = topic.generate(diff);
   q.topicId = topic.id;
-  // Build rich step-by-step solution
-  if(!q.solutionSteps) {
+  // Build step-by-step solution
   const nums = q.question.match(/[\d.]+/g) || [];
   const ans = q.correct.replace(/[°%]/g,'');
   const id = topic.id;
   if(id==='area') {
-    if(q.question.includes('משולש')&&nums.length>=2) {
-      const b=nums[0],h=nums[1],prod=Number(b)*Number(h);
-      q.solutionSteps = 'נוסחה: שטח משולש = (בסיס × גובה) ÷ 2\nשלב 1: כפל בסיס בגובה → '+b+' × '+h+' = '+prod+'\nשלב 2: חלוקה ב-2 → '+prod+' ÷ 2 = '+ans+' ✓';
-    } else if(q.question.includes('טרפז')&&nums.length>=3) {
-      const a=nums[0],b=nums[1],h=nums[2],sum=Number(a)+Number(b),prod=sum*Number(h);
-      q.solutionSteps = 'נוסחה: שטח טרפז = (בסיס₁ + בסיס₂) × גובה ÷ 2\nשלב 1: סכום בסיסים → '+a+' + '+b+' = '+sum+'\nשלב 2: כפל בגובה → '+sum+' × '+h+' = '+prod+'\nשלב 3: חלוקה ב-2 → '+prod+' ÷ 2 = '+ans+' ✓';
-    } else if(q.question.includes('היקף')&&q.question.includes('מלבן')&&nums.length>=2) {
-      const a=nums[0],b=nums[1],sum=Number(a)+Number(b);
-      q.solutionSteps = 'נוסחה: היקף מלבן = 2 × (אורך + רוחב)\nשלב 1: חיבור צלעות → '+a+' + '+b+' = '+sum+'\nשלב 2: כפל ב-2 → 2 × '+sum+' = '+ans+' ✓';
-    } else if(q.question.includes('ריבוע')&&q.question.includes('שטח')&&nums.length>=1) {
-      q.solutionSteps = 'נוסחה: שטח ריבוע = צלע × צלע\nחישוב: '+nums[0]+' × '+nums[0]+' = '+ans+' ✓';
-    } else if(q.question.includes('ריבוע')&&q.question.includes('היקף')&&nums.length>=1) {
-      q.solutionSteps = 'נוסחה: היקף ריבוע = צלע × 4\nחישוב: '+nums[0]+' × 4 = '+ans+' ✓';
-    } else if(q.question.includes('מקבילית')&&nums.length>=2) {
-      q.solutionSteps = 'נוסחה: שטח מקבילית = בסיס × גובה\nחישוב: '+nums[0]+' × '+nums[1]+' = '+ans+' ✓';
-    } else if(q.question.includes('צורה מורכבת')&&nums.length>=4) {
-      const a1=Number(nums[0])*Number(nums[1]),a2=Number(nums[2])*Number(nums[3]);
-      q.solutionSteps = 'כלל: שטח צורה מורכבת = סכום השטחים\nשלב 1: שטח מלבן 1 → '+nums[0]+' × '+nums[1]+' = '+a1+'\nשלב 2: שטח מלבן 2 → '+nums[2]+' × '+nums[3]+' = '+a2+'\nשלב 3: סכום → '+a1+' + '+a2+' = '+ans+' ✓';
-    } else if(nums.length>=2) {
-      q.solutionSteps = 'שטח מלבן = אורך × רוחב\nחישוב: '+nums[0]+' × '+nums[1]+' = '+ans+' ✓';
-    }
-  } else if(id==='orderops') {
-    const expr = q.question;
-    if(expr.includes('(')&&expr.includes(')')) {
-      q.solutionSteps = 'כלל: פתרו קודם את הסוגריים, אחר כך כפל/חילוק, ואז חיבור/חיסור\n'+expr+' = '+ans+' ✓';
-    } else if(expr.includes('\u00D7')||expr.includes('\u00F7')) {
-      q.solutionSteps = 'כלל: כפל וחילוק לפני חיבור וחיסור\n'+expr+' = '+ans+' ✓';
-    } else {
-      q.solutionSteps = 'כלל: סוגריים → חזקות → כפל/חילוק → חיבור/חיסור\n'+expr+' = '+ans+' ✓';
-    }
-  } else if(id==='powers') {
-    const expr = q.question;
-    if(expr.includes('\u00B3')) {
-      const b=nums[0];
-      q.solutionSteps = 'חזקה שלישית = המספר כפול עצמו 3 פעמים\n'+b+'³ = '+b+' × '+b+' × '+b+' = '+ans+' ✓';
-    } else if(expr.includes('(')&&expr.includes('²)²')) {
-      const b=nums[0];
-      q.solutionSteps = 'כלל: (a²)² = a⁴\nשלב 1: '+b+'² = '+(Number(b)*Number(b))+'\nשלב 2: '+(Number(b)*Number(b))+'² = '+ans+' ✓';
-    } else if(expr.includes('\u00D7')&&nums.length>=2) {
-      const a=nums[0],b=nums[1];
-      q.solutionSteps = 'שלב 1: '+a+'² = '+(Number(a)*Number(a))+'\nשלב 2: '+b+'² = '+(Number(b)*Number(b))+'\nשלב 3: '+(Number(a)*Number(a))+' × '+(Number(b)*Number(b))+' = '+ans+' ✓';
-    } else if(expr.includes('\u2212')&&nums.length>=2) {
-      const a=nums[0],sub=nums[1];
-      q.solutionSteps = 'שלב 1: '+a+'² = '+(Number(a)*Number(a))+'\nשלב 2: '+(Number(a)*Number(a))+' − '+sub+' = '+ans+' ✓';
-    } else if(expr.includes('+')&&nums.length>=2) {
-      const a=nums[0],add=nums[1];
-      q.solutionSteps = 'שלב 1: '+a+'² = '+(Number(a)*Number(a))+'\nשלב 2: '+(Number(a)*Number(a))+' + '+add+' = '+ans+' ✓';
-    } else {
-      const b=nums[0];
-      q.solutionSteps = 'חזקה שנייה = המספר כפול עצמו\n'+b+'² = '+b+' × '+b+' = '+ans+' ✓';
-    }
-  } else if(id==='ratio') {
-    if(q.question.includes('סה"כ')&&nums.length>=3) {
-      const parts=q.question.match(/יחס\s+([\d:]+)/);
-      const total=nums[nums.length-2]||nums[1]; // total amount
-      q.solutionSteps = 'כלל: חלק = סה"כ × (יחס ÷ סכום היחסים)\nשלב 1: סכום היחסים → מחושב מהנתונים\nשלב 2: חלק = '+ans+' ✓';
-    } else if(nums.length>=3) {
-      const a=nums[0],b=nums[1],target=nums[2];
-      q.solutionSteps = 'כלל: יחס שווה — מכפילים/מחלקים את שני הצדדים באותו מספר\n'+a+':'+b+' = '+target+':?\nמכפיל: '+target+' ÷ '+a+' = '+(Number(target)/Number(a))+'\nתשובה: '+b+' × '+(Number(target)/Number(a))+' = '+ans+' ✓';
-    } else {
-      q.solutionSteps = 'כלל: ביחס a:b — מצאו את הכפולה המשותפת\nתשובה: '+ans+' ✓';
-    }
-  } else if(id==='multdiv') {
-    const expr = q.question;
-    if(expr.includes('\u00F7')) {
-      q.solutionSteps = 'חילוק = הפעולה ההפוכה לכפל\n'+expr+' = '+ans+' ✓';
-    } else {
-      q.solutionSteps = expr+' = '+ans+' ✓';
-    }
-  } else if(id==='simplefrac') {
-    if(q.question.includes('מתוך')&&nums.length>=3) {
-      const n=nums[0],d=nums[1],whole=nums[2];
-      q.solutionSteps = 'כלל: שבר מתוך מספר = (מספר ÷ מכנה) × מונה\nשלב 1: '+whole+' ÷ '+d+' = '+(Number(whole)/Number(d))+'\nשלב 2: '+(Number(whole)/Number(d))+' × '+n+' = '+ans+' ✓';
-    } else if(q.question.includes('צמצם')&&nums.length>=2) {
-      q.solutionSteps = 'כלל: צמצום = חלוקת מונה ומכנה במחלק משותף\n'+nums[0]+'/'+nums[1]+' = '+q.correct+' ✓';
-    } else if(q.question.includes('⬜')) {
-      q.solutionSteps = 'כלל: להשוות שברים — הפכו לעשרוניים או למכנה משותף\nתשובה: '+q.correct+' ✓';
-    } else {
-      q.solutionSteps = 'תשובה: '+q.correct+' ✓';
-    }
-  } else if(id==='signed') {
-    const expr = q.question;
-    if(expr.includes('\u00D7')) {
-      const hasNeg = (expr.match(/-/g)||[]).length;
-      const rule = hasNeg%2===0 ? '(−)×(−) = (+) — מספר זוגי של מינוסים = חיובי' : '(−)×(+) = (−) — מספר אי-זוגי של מינוסים = שלילי';
-      q.solutionSteps = 'כלל: '+rule+'\n'+expr+' = '+ans+' ✓';
-    } else if(expr.includes('\u00F7')) {
-      q.solutionSteps = 'כלל: כמו כפל — סימנים שווים=חיובי, שונים=שלילי\n'+expr+' = '+ans+' ✓';
-    } else if(expr.includes('\u2212')) {
-      q.solutionSteps = 'כלל: חיסור = חיבור ההפכי → הפכו סימן ושנו לחיבור\n'+expr+' = '+ans+' ✓';
-    } else {
-      q.solutionSteps = 'כלל: בחיבור מכוונים — שימו לב לסימנים!\n'+expr+' = '+ans+' ✓';
-    }
+    if(q.question.includes('משולש')) q.solutionSteps = '('+nums[0]+'×'+nums[1]+')÷2 = '+ans;
+    else if(q.question.includes('טרפז')&&nums.length>=3) q.solutionSteps = '('+nums[0]+'+'+nums[1]+')×'+nums[2]+'÷2 = '+ans;
+    else if(q.question.includes('היקף')&&q.question.includes('מלבן')) q.solutionSteps = '2×('+nums[0]+'+'+nums[1]+') = '+ans;
+    else if(q.question.includes('ריבוע')&&q.question.includes('שטח')) q.solutionSteps = nums[0]+'×'+nums[0]+' = '+ans;
+    else if(q.question.includes('ריבוע')&&q.question.includes('היקף')) q.solutionSteps = nums[0]+'×4 = '+ans;
+    else if(q.question.includes('מקבילית')) q.solutionSteps = nums[0]+'×'+nums[1]+' = '+ans;
+    else if(nums.length>=2) q.solutionSteps = nums[0]+'×'+nums[1]+' = '+ans;
+  } else if(id==='powers'||id==='orderops'||id==='multdiv'||id==='signed') {
+    q.solutionSteps = q.question+' = '+ans;
+  } else if(id==='percent'&&nums.length>=2) {
+    q.solutionSteps = nums[1]+'×'+nums[0]+'÷100 = '+ans;
   } else if(id==='equations') {
-    if(q.question.includes('\u2212')&&nums.length>=3) {
-      const a=nums[0],b=nums[1],c=nums[2];
-      q.solutionSteps = 'כלל: מה שעובר אגף — הופך סימן\nשלב 1: העבירו '+b+' לצד השני\n'+a+'x = '+c+' + '+b+' = '+(Number(c)+Number(b))+'\nשלב 2: חלקו ב-'+a+'\nx = '+(Number(c)+Number(b))+' ÷ '+a+' = '+ans+' ✓';
-    } else if(nums.length>=3) {
-      const a=nums[0],b=nums[1],c=nums[2];
-      q.solutionSteps = 'כלל: מה שעובר אגף — הופך סימן\nשלב 1: העבירו '+b+' לצד השני\n'+a+'x = '+c+' − '+b+' = '+(Number(c)-Number(b))+'\nשלב 2: חלקו ב-'+a+'\nx = '+(Number(c)-Number(b))+' ÷ '+a+' = '+ans+' ✓';
-    } else {
-      q.solutionSteps = 'כלל: בודדו את x — העבירו מספרים לצד השני\nx = '+ans+' ✓';
-    }
-  } else if(id==='percent') {
-    if(q.question.includes('הנחה')&&nums.length>=2) {
-      const price=nums[0],disc=nums[1],discAmt=Number(price)*Number(disc)/100;
-      q.solutionSteps = 'כלל: מחיר אחרי הנחה = מחיר × (100% − הנחה%)\nשלב 1: גובה ההנחה → '+price+' × '+disc+'% = '+discAmt+'\nשלב 2: מחיר סופי → '+price+' − '+discAmt+' = '+ans+' ✓';
-    } else if(q.question.includes('רווח')&&nums.length>=2) {
-      const cost=nums[0],profit=nums[1],profitAmt=Number(cost)*Number(profit)/100;
-      q.solutionSteps = 'כלל: מחיר מכירה = עלות + רווח\nשלב 1: גובה הרווח → '+cost+' × '+profit+'% = '+profitAmt+'\nשלב 2: מחיר מכירה → '+cost+' + '+profitAmt+' = '+ans+' ✓';
-    } else if(nums.length>=2) {
-      const p=nums[0],n=nums[1];
-      q.solutionSteps = 'כלל: X% מתוך N = N × X ÷ 100\nחישוב: '+n+' × '+p+' ÷ 100 = '+ans+' ✓';
-    }
-  } else if(id==='fractions') {
-    const v = q.question;
-    if(v.includes('/')&&q.correct.includes('%')) {
-      q.solutionSteps = 'כלל: שבר → אחוזים: חלקו מונה במכנה, ואז כפלו ב-100\nשלב 1: '+v+' (חלוקה) → עשרוני\nשלב 2: × 100 = '+q.correct+' ✓';
-    } else if(v.includes('/')&&!q.correct.includes('/')) {
-      q.solutionSteps = 'כלל: שבר → עשרוני: חלקו מונה במכנה\n'+v+' = '+q.correct+' ✓';
-    } else if(v.includes('%')&&q.correct.includes('/')) {
-      q.solutionSteps = 'כלל: אחוזים → שבר: שימו מעל 100 וצמצמו\n'+v+' = '+v.replace('%','')+'/100 = '+q.correct+' ✓';
-    } else if(v.includes('%')) {
-      q.solutionSteps = 'כלל: אחוזים → עשרוני: חלקו ב-100\n'+v+' ÷ 100 = '+q.correct+' ✓';
-    } else if(q.correct.includes('%')) {
-      q.solutionSteps = 'כלל: עשרוני → אחוזים: כפלו ב-100\n'+v+' × 100 = '+q.correct+' ✓';
-    } else if(q.correct.includes('/')) {
-      q.solutionSteps = 'כלל: עשרוני → שבר: רשמו כשבר עשרוני וצמצמו\n'+v+' = '+q.correct+' ✓';
-    } else {
-      q.solutionSteps = v+' = '+q.correct+' ✓';
-    }
-  } else if(id==='algebra') {
-    if(q.question.includes('פשט')&&nums.length>=2) {
-      q.solutionSteps = 'כלל: איברים דומים — חברו את המקדמים\n'+nums[0]+'x + '+nums[1]+'x = ('+nums[0]+'+'+nums[1]+')x = '+q.correct+' ✓';
-    } else if(q.question.includes('(')&&nums.length>=3) {
-      const a=nums[0],b=nums[1],x=nums[2];
-      q.solutionSteps = 'כלל: פתחו סוגריים — כפלו כל איבר\nשלב 1: '+a+'×('+x+' + '+b+') = '+a+'×'+x+' + '+a+'×'+b+'\nשלב 2: '+(Number(a)*Number(x))+' + '+(Number(a)*Number(b))+' = '+ans+' ✓';
-    } else if(nums.length>=3) {
-      const a=nums[0],b=nums[1],x=nums[2];
-      q.solutionSteps = 'כלל: הציבו את הערך במקום x\nשלב 1: '+a+'×'+x+' + '+b+' = '+(Number(a)*Number(x))+' + '+b+'\nשלב 2: '+(Number(a)*Number(x))+' + '+b+' = '+ans+' ✓';
-    }
-  } else if(id==='pythagoras') {
-    if(q.question.includes('היתר')&&nums.length>=2) {
-      const a=nums[0],b=nums[1],a2=Number(a)*Number(a),b2=Number(b)*Number(b);
-      q.solutionSteps = 'נוסחה: a² + b² = c² → c = √(a²+b²)\nשלב 1: '+a+'² = '+a2+'\nשלב 2: '+b+'² = '+b2+'\nשלב 3: √('+a2+' + '+b2+') = √'+(a2+b2)+' = '+ans+' ✓';
-    } else if(q.question.includes('הניצב')&&nums.length>=2) {
-      const a=nums[0],c=nums[1],a2=Number(a)*Number(a),c2=Number(c)*Number(c);
-      q.solutionSteps = 'נוסחה: b = √(c² − a²)\nשלב 1: '+c+'² = '+c2+'\nשלב 2: '+a+'² = '+a2+'\nשלב 3: √('+c2+' − '+a2+') = √'+(c2-a2)+' = '+ans+' ✓';
-    } else {
-      q.solutionSteps = 'נוסחה: a² + b² = c²\nתשובה: '+q.correct+' ✓';
-    }
-  } else if(id==='linear') {
-    if(q.question.includes('y')&&q.question.includes('x=')&&nums.length>=3) {
-      const m=nums[0],b=nums[1],x=nums[2];
-      q.solutionSteps = 'נוסחה: y = mx + b — הציבו x\nשלב 1: y = '+m+'×'+x+' + ('+b+')\nשלב 2: y = '+(Number(m)*Number(x))+' + '+b+' = '+ans+' ✓';
-    } else if(q.question.includes('השיפוע')&&nums.length>=1) {
-      q.solutionSteps = 'כלל: ב-y = mx + b, השיפוע הוא m (המקדם של x)\nתשובה: m = '+ans+' ✓';
-    } else if(q.question.includes('מצא x')&&nums.length>=3) {
-      const m=nums[0],b=nums[1],y=nums[2];
-      q.solutionSteps = 'כלל: x = (y − b) ÷ m\nשלב 1: ('+y+' − '+b+') = '+(Number(y)-Number(b))+'\nשלב 2: '+(Number(y)-Number(b))+' ÷ '+m+' = '+ans+' ✓';
-    } else {
-      q.solutionSteps = 'נוסחה: y = mx + b\nתשובה: '+q.correct+' ✓';
-    }
+    q.solutionSteps = 'x = '+ans;
+  } else if(id==='pythagoras'&&nums.length>=2) {
+    q.solutionSteps = '√('+nums[0]+'²+'+nums[1]+'²) = '+ans;
   } else if(id==='explaws') {
-    const expr = q.question;
-    if(expr.includes('\u00D7')&&nums.length>=3) {
-      q.solutionSteps = 'כלל: aⁿ × aᵐ = aⁿ⁺ᵐ (בסיסים שווים → חברו חזקות)\nחישוב: '+nums[1]+' + '+nums[2]+' = '+ans+' ✓';
-    } else if(expr.includes('\u00F7')&&nums.length>=3) {
-      q.solutionSteps = 'כלל: aⁿ ÷ aᵐ = aⁿ⁻ᵐ (בסיסים שווים → חסרו חזקות)\nחישוב: '+nums[1]+' − '+nums[2]+' = '+ans+' ✓';
-    } else if(expr.includes(')^')&&nums.length>=3) {
-      q.solutionSteps = 'כלל: (aⁿ)ᵐ = aⁿˣᵐ (חזקה של חזקה → כפלו)\nחישוב: '+nums[1]+' × '+nums[2]+' = '+ans+' ✓';
-    } else {
-      q.solutionSteps = expr.replace('?',ans)+' ✓';
-    }
-  } else if(id==='stats') {
-    if(q.question.includes('ממוצע')&&nums.length>=2) {
-      const sum=nums.map(Number).reduce((a,b)=>a+b,0);
-      q.solutionSteps = 'נוסחה: ממוצע = סכום כל הערכים ÷ כמות\nשלב 1: סכום → '+nums.join(' + ')+' = '+sum+'\nשלב 2: '+sum+' ÷ '+nums.length+' = '+ans+' ✓';
-    } else if(q.question.includes('חציון')) {
-      q.solutionSteps = 'כלל: חציון = הערך האמצעי (אחרי מיון מקטן לגדול)\nסדרו: '+nums.map(Number).sort((a,b)=>a-b).join(', ')+'\nהאמצעי: '+ans+' ✓';
-    } else if(q.question.includes('שכיח')) {
-      q.solutionSteps = 'כלל: שכיח = הערך שמופיע הכי הרבה פעמים\nתשובה: '+ans+' ✓';
-    }
+    q.solutionSteps = q.question.replace('?',ans);
+  } else if(id==='linear'&&nums.length>=2) {
+    q.solutionSteps = q.question.split('\n')[0]+' → '+ans;
   } else if(id==='quadratic') {
-    if(q.question.includes('x²')&&q.question.includes('חיובי')&&nums.length>=1) {
-      q.solutionSteps = 'כלל: x² = k → x = √k\nחישוב: x = √'+nums[0]+' = '+ans+' ✓';
-    } else if(q.question.includes('הגדול')&&nums.length>=3) {
-      const b=nums[1],c=nums[2];
-      q.solutionSteps = 'כלל: פירוק — מצאו שני מספרים שסכומם '+b+' ומכפלתם '+c+'\nנוסחה: x² − '+b+'x + '+c+' = (x−?)(x−?) = 0\nהפתרון הגדול: x = '+ans+' ✓';
-    } else if(q.question.includes('סכום')) {
-      q.solutionSteps = 'כלל (ויאטה): סכום הפתרונות = −b/a\nבמשוואה ax²+bx+c=0, סכום השורשים = '+ans+' ✓';
-    } else {
-      q.solutionSteps = 'נוסחה: x = (−b ± √Δ) / 2a\nתשובה: '+q.correct+' ✓';
-    }
+    q.solutionSteps = q.question.split('\n')[0]+' → '+q.correct;
   } else if(id==='parabola') {
-    if(q.question.includes('סימטריה')&&nums.length>=1) {
-      q.solutionSteps = 'נוסחה: ציר סימטריה = −b/(2a)\nחישוב: x = '+ans+' ✓';
-    } else if(q.question.includes('y כאשר')&&nums.length>=3) {
-      const k=nums[nums.length-1];
-      q.solutionSteps = 'כלל: הציבו x='+k+' בפונקציה\ny = ('+k+')² + ... = '+ans+' ✓';
-    } else if(q.question.includes('פונה')) {
-      q.solutionSteps = 'כלל: a > 0 → פרבולה פונה למעלה (חיוך 😊)\na < 0 → פרבולה פונה למטה (עצב 😞)\nתשובה: '+q.correct+' ✓';
-    } else {
-      q.solutionSteps = 'נוסחה: y = ax² + bx + c\nתשובה: '+q.correct+' ✓';
-    }
+    q.solutionSteps = q.question.split('\n')[0]+' → '+q.correct;
   } else if(id==='trig') {
-    if(q.question.includes('sin(')||q.question.includes('cos(')||q.question.includes('tan(')) {
-      q.solutionSteps = 'ערכים לזכור:\nsin(30°)=0.5  cos(30°)=0.866  tan(30°)=0.577\nsin(45°)=0.707 cos(45°)=0.707 tan(45°)=1\nsin(60°)=0.866 cos(60°)=0.5  tan(60°)=1.732\nתשובה: '+q.correct+' ✓';
-    } else if(q.question.includes('שמול')&&nums.length>=2) {
-      q.solutionSteps = 'נוסחה: ניצב שמול = יתר × sin(זווית)\nחישוב: '+nums[0]+' × sin('+nums[1]+'°) = '+ans+' ✓';
-    } else if(q.question.includes('שליד')&&nums.length>=2) {
-      q.solutionSteps = 'נוסחה: ניצב שליד = יתר × cos(זווית)\nחישוב: '+nums[0]+' × cos('+nums[1]+'°) = '+ans+' ✓';
-    } else if(q.question.includes('הזווית')) {
-      q.solutionSteps = 'כלל: sin(α) = ניצב שמול ÷ יתר\nמצאו את הזווית מטבלת הערכים\nתשובה: '+q.correct+' ✓';
-    } else {
-      q.solutionSteps = 'sin=נגד÷יתר, cos=ליד÷יתר, tan=נגד÷ליד\nתשובה: '+q.correct+' ✓';
-    }
+    q.solutionSteps = q.question.split('\n')[0]+' → '+q.correct;
   } else if(id==='sequences') {
-    if(q.question.includes('האיבר הבא')&&nums.length>=3) {
-      const d=Number(nums[1])-Number(nums[0]);
-      q.solutionSteps = 'כלל: בסדרה חשבונית ההפרש (d) קבוע\nשלב 1: מצאו d → '+nums[1]+' − '+nums[0]+' = '+d+'\nשלב 2: האיבר הבא → '+nums[2]+' + '+d+' = '+ans+' ✓';
-    } else if(q.question.includes('a₁')&&q.question.includes('d=')&&nums.length>=3) {
-      const a1=nums[0],d=nums[1],n=nums[2];
-      if(q.question.includes('סכום')) {
-        q.solutionSteps = 'נוסחה: S = n×(2a₁ + (n−1)×d) ÷ 2\nשלב 1: הציבו a₁='+a1+', d='+d+', n='+n+'\nשלב 2: S = '+ans+' ✓';
-      } else {
-        q.solutionSteps = 'נוסחה: aₙ = a₁ + (n−1)×d\nשלב 1: הציבו a₁='+a1+', d='+d+', n='+n+'\nשלב 2: '+a1+' + ('+(Number(n)-1)+')×'+d+' = '+a1+' + '+(Number(n)-1)*Number(d)+' = '+ans+' ✓';
-      }
-    } else {
-      q.solutionSteps = 'נוסחה: aₙ = a₁ + (n−1)×d\nתשובה: '+q.correct+' ✓';
-    }
+    q.solutionSteps = q.question.split('\n')[0]+' → '+q.correct;
   } else if(id==='probability') {
-    if(q.question.includes('קובייה')&&q.question.includes('זוגי')) {
-      q.solutionSteps = 'כלל: P = רצויים ÷ כולם\nזוגיים בקובייה: 2, 4, 6 → 3 מתוך 6\nP = 3/6 = '+q.correct+' ✓';
-    } else if(q.question.includes('קובייה')) {
-      q.solutionSteps = 'כלל: P = רצויים ÷ כולם\nבקובייה 6 תוצאות אפשריות\nP = 1/6 = '+q.correct+' ✓';
-    } else if(q.question.includes('מטבע')) {
-      q.solutionSteps = 'כלל: P = רצויים ÷ כולם\nבמטבע 2 תוצאות: עץ או פלי\nP = 1/2 = '+q.correct+' ✓';
-    } else if(q.question.includes('שקית')&&nums.length>=2) {
-      q.solutionSteps = 'כלל: P = רצויים ÷ כולם\nP = '+nums[1]+' ÷ '+nums[0]+' = '+q.correct+' ✓';
-    } else if(q.question.includes('לא ירד')) {
-      q.solutionSteps = 'כלל: P(לא A) = 1 − P(A) = 100% − P(A)\nחישוב: 100% − '+nums[0]+'% = '+q.correct+' ✓';
-    } else {
-      q.solutionSteps = 'כלל: P = רצויים ÷ כולם\nתשובה: '+q.correct+' ✓';
-    }
+    q.solutionSteps = 'P = '+q.correct;
   }
-  if(!q.solutionSteps) q.solutionSteps = q.question.replace(/\n/g,' ')+' = '+q.correct+' ✓';
-  }
+  if(!q.solutionSteps) q.solutionSteps = q.question.replace(/\n/g,' ')+' = '+q.correct;
   return q;
 };
 
@@ -2690,35 +2472,18 @@ export default function App() {
                 <div className="text-sm leading-relaxed mb-3" style={{color:'#e2e8f0'}}>
                   {EXPLANATIONS[question.topicId].b}
                 </div>
-                {/* Step-by-step solution */}
+                {/* Formula */}
+                <div className="py-2 px-4 rounded-xl text-center text-sm font-bold mb-3"
+                  style={{background:'rgba(167,139,250,0.15)',border:'1px solid rgba(167,139,250,0.3)',color:'#c4b5fd'}}>
+                  {EXPLANATIONS[question.topicId].f}
+                </div>
+                {/* Step-by-step answer */}
                 {question.solutionSteps && (
-                <div className="py-3 px-4 rounded-xl mb-3 slide-up"
-                  style={{background:'rgba(0,229,255,0.06)',border:'1px solid rgba(0,229,255,0.2)'}}>
-                  <div className="text-xs font-bold mb-2" style={{color:'#7dd3fc',letterSpacing:'0.3px'}}>📝 פתרון צעד אחר צעד:</div>
-                  <div dir="rtl" style={{textAlign:'right'}}>
-                    {question.solutionSteps.split('\n').map((line,i,arr) => {
-                      const isFormula = line.startsWith('נוסחה:') || line.startsWith('כלל:') || line.startsWith('כלל (');
-                      const isStep = line.startsWith('שלב ');
-                      const isFinal = line.includes('✓');
-                      const isCalc = line.startsWith('חישוב:');
-                      return (
-                        <div key={i} className={i>0?'mt-1.5':''}
-                          style={{
-                            padding: '4px 8px',
-                            borderRadius: '8px',
-                            fontSize: isFormula ? '12px' : '13px',
-                            fontWeight: isFinal ? 800 : isFormula ? 700 : 600,
-                            color: isFormula ? '#c4b5fd' : isFinal ? '#4ade80' : isStep ? '#e2e8f0' : isCalc ? '#7dd3fc' : '#cbd5e1',
-                            background: isFormula ? 'rgba(167,139,250,0.12)' : isFinal ? 'rgba(74,222,128,0.08)' : 'transparent',
-                            borderRight: isStep ? '3px solid rgba(0,229,255,0.4)' : 'none',
-                            paddingRight: isStep ? '10px' : '8px',
-                            fontFamily: "'Heebo','Orbitron',sans-serif",
-                            direction: 'rtl',
-                          }}>
-                          {line}
-                        </div>
-                      );
-                    })}
+                <div className="py-2 px-4 rounded-xl text-center mb-3"
+                  style={{background:'rgba(0,229,255,0.08)',border:'1px solid rgba(0,229,255,0.2)'}}>
+                  <div className="text-xs text-gray-400 mb-1">פתרון:</div>
+                  <div className="text-base font-bold" dir="ltr" style={{color:'#7dd3fc',fontFamily:"'Orbitron',sans-serif",whiteSpace:'pre-line'}}>
+                    {question.solutionSteps}
                   </div>
                 </div>
                 )}
@@ -2886,31 +2651,11 @@ export default function App() {
                   {EXPLANATIONS[question.topicId].f}
                 </div>
                 {question.solutionSteps && (
-                  <div className="py-3 px-4 rounded-xl mb-3"
-                    style={{background:'rgba(0,229,255,0.06)',border:'1px solid rgba(0,229,255,0.2)'}}>
-                    <div className="text-xs font-bold mb-2" style={{color:'#7dd3fc'}}>📝 פתרון צעד אחר צעד:</div>
-                    <div dir="rtl" style={{textAlign:'right'}}>
-                      {question.solutionSteps.split('\n').map((line,i) => {
-                        const isFormula = line.startsWith('נוסחה:') || line.startsWith('כלל:') || line.startsWith('כלל (');
-                        const isStep = line.startsWith('שלב ');
-                        const isFinal = line.includes('✓');
-                        const isCalc = line.startsWith('חישוב:');
-                        return (
-                          <div key={i} className={i>0?'mt-1.5':''}
-                            style={{
-                              padding:'4px 8px', borderRadius:'8px',
-                              fontSize: isFormula ? '12px' : '13px',
-                              fontWeight: isFinal ? 800 : isFormula ? 700 : 600,
-                              color: isFormula ? '#c4b5fd' : isFinal ? '#4ade80' : isStep ? '#e2e8f0' : isCalc ? '#7dd3fc' : '#cbd5e1',
-                              background: isFormula ? 'rgba(167,139,250,0.12)' : isFinal ? 'rgba(74,222,128,0.08)' : 'transparent',
-                              borderRight: isStep ? '3px solid rgba(0,229,255,0.4)' : 'none',
-                              paddingRight: isStep ? '10px' : '8px',
-                              fontFamily: "'Heebo','Orbitron',sans-serif",
-                            }}>
-                            {line}
-                          </div>
-                        );
-                      })}
+                  <div className="py-2 px-4 rounded-xl text-center mb-3"
+                    style={{background:'rgba(0,229,255,0.08)',border:'1px solid rgba(0,229,255,0.2)'}}>
+                    <div className="text-xs text-gray-400 mb-1">פתרון:</div>
+                    <div className="text-base font-bold" dir="ltr" style={{color:'#7dd3fc',fontFamily:"'Orbitron',sans-serif",whiteSpace:'pre-line'}}>
+                      {question.solutionSteps}
                     </div>
                   </div>
                 )}
