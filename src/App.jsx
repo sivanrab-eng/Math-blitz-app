@@ -12,6 +12,7 @@ const START_LIVES = 3;
 const REVIVE_COST = 3000;
 const REVIVE_INVITE_LIMIT = 2;
 const ROUND_SIZE = 10;
+const DEFAULT_NAME = 'שחקן';
 const LIFE_EARN_STREAK = 7;
 const AD_WATCH_SECONDS = 5; // simulated ad duration until real ads connected
 const REVIVE_AD_LIMIT = 1;  // max free revives via ad per game
@@ -1227,7 +1228,10 @@ export default function App() {
   const [hintVisible,setHintVisible] = useState(false);
   const [achToast,setAchToast] = useState(null);
   const [unlockedAch,setUnlockedAch] = useState({});
-  const [playerName,setPlayerName] = useState(()=>{ try{return localStorage.getItem('math-blitz-name')||'';}catch{return '';} });
+  const [playerName,setPlayerName] = useState(()=>{ try{const saved=localStorage.getItem('math-blitz-name');return (saved && saved !== DEFAULT_NAME) ? saved : DEFAULT_NAME;}catch{return DEFAULT_NAME;} });
+  const [showNameModal,setShowNameModal] = useState(false);
+  const [nameModalCallback,setNameModalCallback] = useState(null);
+  const nameInputRef = useRef(null);
   const [totalCorrect,setTotalCorrect] = useState(0);
   const [streakMilestone,setStreakMilestone] = useState(null);
   const [showPrize,setShowPrize] = useState(false);
@@ -1304,7 +1308,7 @@ export default function App() {
 
   const saveScore = () => {
     const g = gs.current;
-    const entry = {s:g.score,st:g.maxStreak,q:g.answered,r:Math.ceil(g.answered/ROUND_SIZE),d:new Date().toLocaleDateString('he-IL'),id:Date.now()};
+    const entry = {s:g.score,st:g.maxStreak,q:g.answered,r:Math.ceil(g.answered/ROUND_SIZE),d:new Date().toLocaleDateString('he-IL'),id:Date.now(),n:playerName||DEFAULT_NAME};
     const nb = [...board,entry].sort((a,b)=>b.s-a.s).slice(0,10);
     persistBoard(nb);
     setBoard(nb);
@@ -1416,7 +1420,7 @@ export default function App() {
         // Show prize box first, then round summary
         const bonus = g.roundCorrect >= 8 ? 50 : g.roundCorrect >= 5 ? 25 : 10;
         showPrizeBox(bonus);
-        setTimeout(() => { collectPrize(); setScreen('roundSummary'); }, 2000);
+        setTimeout(() => { collectPrize(); setScreen('roundSummary'); if(g.answered === ROUND_SIZE && isDefaultName()) { setTimeout(()=>showDeferredNamePrompt(null), 600); } }, 2000);
       }, delay);
       return true;
     }
@@ -1710,23 +1714,31 @@ export default function App() {
     }
   };
 
-  const shareWhatsApp = () => {
+  const _doShareWhatsApp = () => {
     if(window.gtag) window.gtag('event','share_whatsapp',{event_category:'sharing',event_label:'game_over_challenge',score:gs.current.score});
     const g = gs.current;
-    const name = playerName || 'שחקן';
+    const name = playerName || DEFAULT_NAME;
     const acc = g.answered > 0 ? Math.round((g.totalCorrect||0)/g.answered*100) : 0;
     const stars = acc >= 90 ? '⭐⭐⭐' : acc >= 70 ? '⭐⭐' : '⭐';
     const txt = '\u26CF\uFE0F \u05D0\u05EA\u05D2\u05E8 \u05DE\u05EA\u05DE\u05D8\u05D9 \u26CF\uFE0F\n\n'+name+' \u05D4\u05E9\u05D9\u05D2 '+g.score+' \u05E0\u05E7\u05D5\u05D3\u05D5\u05EA! '+stars+'\n\u05E8\u05E6\u05E3: '+g.maxStreak+' \u{1F525} | \u05D3\u05D9\u05D5\u05E7: '+acc+'% \u{1F3AF}\n\n\u05EA\u05E0\u05E1\u05D4 \u05DC\u05E0\u05E6\u05D7 \u05D0\u05D5\u05EA\u05D9? \u{1F60F}\n\nhttps://sivanrab-eng.github.io/Math-blitz-app/?v=3';
     window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
   };
+  const shareWhatsApp = () => {
+    if(isDefaultName()) { showDeferredNamePrompt(_doShareWhatsApp); return; }
+    _doShareWhatsApp();
+  };
 
-  const shareStreakWhatsApp = (num) => {
+  const _doShareStreak = (num) => {
     if(window.gtag) window.gtag('event','share_whatsapp',{event_category:'sharing',event_label:'streak_share',streak:num});
-    const name = playerName || 'שחקן';
+    const name = playerName || DEFAULT_NAME;
     const emojis = {5:'\u{1F525}',10:'\u26A1',15:'\u{1F4A5}',20:'\u{1F680}',25:'\u{1F31F}'};
     const e = emojis[num] || '\u{1F525}';
     const txt = e+' '+name+' \u05E2\u05E9\u05D4 '+num+' \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05E0\u05DB\u05D5\u05E0\u05D5\u05EA \u05D1\u05E8\u05E6\u05E3! '+e+'\n\n\u05D7\u05D5\u05E9\u05D1 \u05E9\u05EA\u05D5\u05DB\u05DC \u05DC\u05E2\u05E7\u05D5\u05E3 \u05D0\u05D5\u05EA\u05D9 \u{1F609}?\n\n\u05E9\u05D7\u05E7 \u05E2\u05DB\u05E9\u05D9\u05D5:\nhttps://sivanrab-eng.github.io/Math-blitz-app/?v=3';
     window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+  };
+  const shareStreakWhatsApp = (num) => {
+    if(isDefaultName()) { showDeferredNamePrompt(()=>_doShareStreak(num)); return; }
+    _doShareStreak(num);
   };
 
   const shareMenuWhatsApp = () => {
@@ -1947,10 +1959,33 @@ export default function App() {
     }
   };
 
-  // ── Save Name ────────────────────────────
+  // ── Name Prompt (Deferred) ────────────────────────────
   const saveName = (name) => {
     setPlayerName(name);
     try { localStorage.setItem('math-blitz-name', name); } catch{}
+  };
+
+  const isDefaultName = () => !playerName || playerName === DEFAULT_NAME;
+
+  const showDeferredNamePrompt = (callback) => {
+    if(!isDefaultName()) { if(callback) callback(); return; }
+    setNameModalCallback(()=>callback);
+    setShowNameModal(true);
+    setTimeout(()=>{ if(nameInputRef.current) nameInputRef.current.focus(); }, 300);
+  };
+
+  const confirmNamePrompt = (inputVal) => {
+    const n = (inputVal||'').trim();
+    if(!n) return false;
+    saveName(n);
+    setShowNameModal(false);
+    if(nameModalCallback) { const fn = nameModalCallback; setNameModalCallback(null); fn(); }
+    return true;
+  };
+
+  const skipNamePrompt = () => {
+    setShowNameModal(false);
+    if(nameModalCallback) { const fn = nameModalCallback; setNameModalCallback(null); fn(); }
   };
 
   // ── Save / Resume Progress ───────────────
@@ -2129,15 +2164,6 @@ export default function App() {
               <p className="text-lg font-bold glow-pink" style={{color:'#ff0080'}}>מתמטיקה בלייז</p>
             </div>
             <div className="float-anim" style={{fontSize:'3rem',lineHeight:1}}>🧠</div>
-
-            {/* Name Input */}
-            <div className="w-full max-w-xs slide-up" style={{animationDelay:'0.02s'}}>
-              <input type="text" value={playerName} onChange={(e)=>saveName(e.target.value)}
-                placeholder="מה השם שלך?"
-                className="w-full py-3 px-4 rounded-xl text-center text-lg font-bold outline-none"
-                style={{background:'rgba(255,255,255,0.08)',border:'2px solid rgba(255,255,255,0.15)',color:'#fff',fontFamily:"'Heebo',sans-serif"}}
-                maxLength={15} dir="rtl"/>
-            </div>
 
             {/* Grade Selection */}
             <div className="w-full max-w-xs slide-up" style={{animationDelay:'0.03s'}}>
@@ -2976,9 +3002,12 @@ export default function App() {
                     <span className="text-lg font-bold w-8 text-center" style={{color:i===0?'#00e5ff':i===1?'#ff0080':'#888',fontFamily:"'Orbitron',sans-serif"}}>
                       {i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}
                     </span>
-                    <div className="flex-1">
-                      <span className="font-bold" style={{fontFamily:"'Orbitron',sans-serif",color:i===0?'#00e5ff':'#fff'}}>{e.s}</span>
-                      <span className="text-xs text-gray-500 mr-2">נקודות</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-bold truncate" style={{color:i===0?'#00e5ff':'#ccc',fontFamily:"'Heebo',sans-serif"}}>{e.n||DEFAULT_NAME}</div>
+                      <div>
+                        <span className="font-bold" style={{fontFamily:"'Orbitron',sans-serif",color:i===0?'#00e5ff':'#fff'}}>{e.s}</span>
+                        <span className="text-xs text-gray-500 mr-2">נקודות</span>
+                      </div>
                     </div>
                     <div className="text-left text-xs text-gray-500">
                       <div>רצף {e.st} 🔥</div>
@@ -3120,6 +3149,38 @@ export default function App() {
               </div>
               <div className="text-2xl font-black" style={{color:'#ffaa00',fontFamily:"'Orbitron',sans-serif"}}>{adCountdown}</div>
               <div className="text-xs text-gray-500 mt-1">ממשיכים עוד רגע...</div>
+            </div>
+          </div>
+        )}
+
+        {/* ── DEFERRED NAME PROMPT MODAL ──── */}
+        {showNameModal && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{background:'rgba(0,0,0,0.8)',padding:24}} onClick={(e)=>{if(e.target===e.currentTarget) skipNamePrompt();}}>
+            <div className="pop-in w-full" style={{maxWidth:340,background:'linear-gradient(135deg,#0a0a2e,#1a0a3e)',borderRadius:24,padding:'32px 24px',textAlign:'center',border:'2px solid rgba(0,229,255,0.3)',boxShadow:'0 0 40px rgba(0,229,255,0.15)'}}>
+              <div style={{fontSize:40,marginBottom:12}}>🏆</div>
+              <div style={{fontSize:17,fontWeight:700,color:'#fff',marginBottom:6,lineHeight:1.5,fontFamily:"'Heebo',sans-serif"}}>
+                סיבוב ראשון הושלם!
+              </div>
+              <div style={{fontSize:14,color:'#00e5ff',marginBottom:18,fontFamily:"'Heebo',sans-serif"}}>
+                באיזה שם לרשום אותך בטבלת השיאים?
+              </div>
+              <input ref={nameInputRef} type="text" placeholder="הכנס את שמך ✏️"
+                maxLength={15} autoComplete="off" dir="rtl"
+                className="w-full outline-none"
+                style={{padding:'14px 18px',background:'rgba(255,255,255,0.1)',border:'2px solid rgba(0,229,255,0.4)',borderRadius:14,color:'#fff',fontSize:18,fontWeight:700,textAlign:'center',boxSizing:'border-box',marginBottom:14,fontFamily:"'Heebo',sans-serif"}}
+                onFocus={(e)=>{e.target.style.borderColor='#00e5ff';}}
+                onKeyDown={(e)=>{if(e.key==='Enter') confirmNamePrompt(e.target.value);}}
+              />
+              <button onClick={()=>{if(nameInputRef.current) confirmNamePrompt(nameInputRef.current.value);}}
+                className="w-full btn-option"
+                style={{padding:14,background:'linear-gradient(135deg,#00e5ff,#0088cc)',border:'none',borderRadius:14,color:'#050510',fontSize:17,fontWeight:800,cursor:'pointer',marginBottom:8,fontFamily:"'Heebo',sans-serif"}}>
+                ✅ זה אני!
+              </button>
+              <button onClick={skipNamePrompt}
+                className="w-full btn-option"
+                style={{padding:10,background:'transparent',border:'1px solid rgba(255,255,255,0.15)',borderRadius:14,color:'rgba(255,255,255,0.4)',fontSize:14,cursor:'pointer',fontFamily:"'Heebo',sans-serif"}}>
+                אולי אחר כך
+              </button>
             </div>
           </div>
         )}
