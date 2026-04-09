@@ -1845,11 +1845,11 @@ export default function App() {
 
   // ── Spotlight Tutorial ──────────────────
   const OB_SPOTLIGHT_STEPS = [
-    { targetId:'hud-timer', emoji:'⏱️', title:'זמן לתשובה', text:'יש לכם 20 שניות לענות.\nככל שעונים מהר יותר — יותר נקודות!\nהטיימר מתקצר עם כל תשובה נכונה ⚡' },
-    { targetId:'hud-score', emoji:'🪙', title:'ניקוד', text:'הניקוד = הזמן שנשאר × 10\nענו מהר = יותר נקודות!\nמינימום 10 נקודות על כל תשובה נכונה.' },
-    { targetId:'hud-lives', emoji:'❤️', title:'חיים', text:'מתחילים עם 3 ❤️\nכל טעות או שנגמר הזמן = מאבדים חיים.\nנגמרו? חכו דקה לחיים, קנו 3 בנקודות, או שלחו אתגר!' },
-    { targetId:'hud-streak', emoji:'🔥', title:'רצף בונוס', text:'ענו נכון ברצף — ותראו קומבו אימוג\'ים!\n5 ברצף = הקושי עולה = יותר נקודות!' },
-    { targetId:'hud-powerups', emoji:'⚡', title:'כוחות מיוחדים', text:'❄️ הקפאה = עוצר את הטיימר\n⚡ בוסט = זמן נוסף\n🆘 חבר = שלח לחבר וקבל שניות!' },
+    { targetId:'hud-lives', emoji:'❤️', title:'חיים', text:'מתחילים עם 3 חיים. נגמרו לך החיים? תאלץ להמתין דקה.\nלא רוצה לחכות: אפשר לקנות בנקודות או להזמין חבר!' },
+    { targetId:'hud-score', emoji:'🏆', title:'ניקוד', text:'ככל שעונים מהר יותר — מרוויחים יותר נקודות!\nמינימום 10 נקודות לתשובה נכונה.' },
+    { targetId:'hud-streak', emoji:'🔥', title:'קומבו', text:'רצף תשובות נכונות = מכפיל קומבו!\nככל שהרצף גדל, האימוג׳ים משתדרגים.' },
+    { targetId:'hud-timer', emoji:'⏱️', title:'טיימר', text:'20 שניות לכל שאלה. עונים נכון?\nהטיימר מתקצר! עד מינימום 3 שניות.' },
+    { targetId:'hud-powerups', emoji:'⚡', title:'כוחות מיוחדים', text:'SOS מסנן תשובות, ברק מדלג על שאלה,\nהקפאה עוצרת את הטיימר.' },
     { targetId:'hud-hint', emoji:'💡', title:'רמז', text:'תקועים בשאלה?\nלחצו על 💡 בפינת השאלה לקבלת רמז!' },
   ];
 
@@ -1930,6 +1930,13 @@ export default function App() {
       gs.current.streak=0; gs.current.boostCount=0; gs.current.freezeCount=1;
       setObFromMenu(false);
       nextQ();
+    }
+  };
+  const obPrev = () => {
+    if(obStep > 0) {
+      const prev = obStep - 1;
+      setOBStep(prev);
+      updateSpotlight(prev);
     }
   };
 
@@ -2701,10 +2708,16 @@ export default function App() {
           const total = OB_SPOTLIGHT_STEPS.length;
           const isFinal = obStep === total - 1;
           const sr = spotlightRect;
-          const overflowBottom = sr && (sr.y + sr.h + 280 > window.innerHeight);
+          // Position bubble below or above the target
+          const bubbleBelow = sr && (sr.y < window.innerHeight * 0.45);
+          const bubbleTop = sr ? (bubbleBelow ? sr.y + sr.h + 12 : sr.y - 12) : '50%';
+          const arrowLeftPx = sr ? Math.max(24, Math.min(sr.x + sr.w/2 - 20, window.innerWidth - 60)) : 0;
+          const bubbleLeft = sr ? Math.max(12, Math.min(sr.x + sr.w/2 - 150, window.innerWidth - 312)) : 20;
+          const arrowOffset = sr ? arrowLeftPx - bubbleLeft : 130;
           return (
-            <div key={'ob-'+obStep} style={{position:'fixed',inset:0,zIndex:9999,display:'flex',alignItems:sr?'flex-start':'center',justifyContent:'center'}}>
-              {/* Dark overlay with spotlight hole */}
+            <div key={'ob-'+obStep} style={{position:'fixed',inset:0,zIndex:9999}}>
+              <style>{`@keyframes obSpotPulse{0%,100%{stroke-opacity:0.5;filter:drop-shadow(0 0 6px rgba(0,229,255,0.4))}50%{stroke-opacity:1;filter:drop-shadow(0 0 14px rgba(0,229,255,0.7))}}@keyframes obBubblePop{0%{opacity:0;transform:scale(0.88) translateY(6px)}60%{opacity:1;transform:scale(1.02) translateY(-1px)}100%{opacity:1;transform:scale(1) translateY(0)}}`}</style>
+              {/* Overlay with spotlight hole */}
               <svg style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
                 <defs>
                   <mask id="spotlight-mask">
@@ -2712,48 +2725,74 @@ export default function App() {
                     {sr && <rect x={sr.x} y={sr.y} width={sr.w} height={sr.h} rx="12" fill="black"/>}
                   </mask>
                 </defs>
-                <rect width="100%" height="100%" fill="rgba(3,3,20,0.88)" mask="url(#spotlight-mask)"/>
-                {sr && <rect x={sr.x} y={sr.y} width={sr.w} height={sr.h} rx="12" fill="none" stroke="#00e5ff" strokeWidth="2" style={{filter:'drop-shadow(0 0 8px rgba(0,229,255,0.6))'}}/>}
+                <rect width="100%" height="100%" fill="rgba(5,5,16,0.42)" mask="url(#spotlight-mask)"/>
+                {sr && <rect x={sr.x} y={sr.y} width={sr.w} height={sr.h} rx="12" fill="none" stroke="#00e5ff" strokeWidth="2.5" style={{animation:'obSpotPulse 2s ease-in-out infinite'}}/>}
               </svg>
-              {/* Explanation Card */}
-              <div style={{position:'absolute',left:0,right:0,display:'flex',justifyContent:'center',
-                top: sr ? (overflowBottom ? Math.max(8, sr.y - 16) : sr.y + sr.h + 16) : '50%',
-                transform: sr && overflowBottom ? 'translateY(-100%)' : (sr ? 'none' : 'translateY(-50%)'),
-                zIndex:10000,padding:'0 20px',pointerEvents:'none'}}>
-              <div style={{width:'100%',maxWidth:320,background:'rgba(10,5,40,0.97)',border:'2px solid rgba(0,229,255,0.4)',borderRadius:20,padding:'18px 18px 14px',textAlign:'center',boxShadow:'0 0 40px rgba(0,229,255,0.15),0 20px 60px rgba(0,0,0,0.5)',direction:'rtl',pointerEvents:'auto'}}>
-                <style>{`@keyframes obFadeIn{from{opacity:0;}to{opacity:1;}}`}</style>
-                <div style={{fontSize:11,color:'#00e5ff',fontWeight:700,marginBottom:8,opacity:0.7}}>
-                  {obStep+1} / {total}
+              {/* Speech bubble */}
+              <div style={{
+                position:'absolute',
+                top: bubbleBelow ? bubbleTop : 'auto',
+                bottom: !bubbleBelow && sr ? (window.innerHeight - sr.y + 12) : 'auto',
+                left: bubbleLeft,
+                width: 300, maxWidth:'calc(100vw - 24px)',
+                zIndex:10000,
+                animation:'obBubblePop 0.35s ease-out forwards',
+              }}>
+                {/* Arrow pointing to target */}
+                {sr && bubbleBelow && (
+                  <div style={{position:'absolute',top:-8,left:arrowOffset,width:0,height:0,
+                    borderLeft:'9px solid transparent',borderRight:'9px solid transparent',
+                    borderBottom:'9px solid rgba(10,10,46,0.96)'}}/>
+                )}
+                <div style={{background:'linear-gradient(135deg,rgba(10,10,46,0.96),rgba(15,15,50,0.96))',
+                  border:'1.5px solid rgba(0,229,255,0.3)',borderRadius:18,padding:'14px 16px 12px',
+                  boxShadow:'0 4px 24px rgba(0,229,255,0.15)',direction:'rtl',textAlign:'right'}}>
+                  {/* Title */}
+                  <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6,justifyContent:'flex-start'}}>
+                    <span style={{fontSize:15,fontWeight:900,color:'#00e5ff',textShadow:'0 0 10px rgba(0,229,255,0.3)'}}>{s.emoji} {s.title}</span>
+                  </div>
+                  {/* Text */}
+                  <div style={{fontSize:14,color:'#d0d0e8',lineHeight:1.7,fontWeight:500,whiteSpace:'pre-line',marginBottom:14}}>
+                    {s.text}
+                  </div>
+                  {/* Step dots */}
+                  <div style={{display:'flex',justifyContent:'center',gap:5,marginBottom:10}}>
+                    {Array.from({length:total}).map((_,i)=>(
+                      <div key={i} style={{
+                        height:6,borderRadius:3,transition:'all 0.3s ease',
+                        width:i===obStep?20:6,
+                        background:i===obStep?'#00e5ff':i<obStep?'rgba(0,229,255,0.5)':'rgba(255,255,255,0.12)',
+                        boxShadow:i===obStep?'0 0 8px rgba(0,229,255,0.4)':'none'
+                      }}/>
+                    ))}
+                  </div>
+                  {/* Nav buttons */}
+                  <div style={{display:'flex',gap:8}}>
+                    {obStep > 0 && (
+                      <button onClick={obPrev} style={{flex:1,padding:'10px 0',borderRadius:12,
+                        background:'rgba(0,229,255,0.06)',border:'1px solid rgba(0,229,255,0.15)',
+                        color:'#00e5ff',fontSize:14,fontWeight:700,cursor:'pointer'}}>
+                        → הקודם
+                      </button>
+                    )}
+                    <button onClick={obNext} style={{flex:obStep>0?2:1,padding:'10px 0',borderRadius:12,border:'none',fontSize:15,fontWeight:900,cursor:'pointer',
+                      background:isFinal?'linear-gradient(135deg,#00e5ff,#00b8d4)':'linear-gradient(135deg,rgba(0,229,255,0.15),rgba(0,229,255,0.08))',
+                      border:isFinal?'none':'1.5px solid rgba(0,229,255,0.3)',
+                      color:isFinal?'#050510':'#00e5ff',
+                      boxShadow:isFinal?'0 0 20px rgba(0,229,255,0.3)':'none'}}>
+                      {isFinal ? '🎮 צא לדרך!' : 'הבא ←'}
+                    </button>
+                  </div>
+                  <div style={{textAlign:'center',marginTop:6}}>
+                    <span style={{fontSize:10,color:'rgba(0,229,255,0.3)',fontFamily:"'Orbitron',sans-serif"}}>{obStep+1} / {total}</span>
+                  </div>
                 </div>
-                <div style={{display:'flex',justifyContent:'center',gap:5,marginBottom:14}}>
-                  {Array.from({length:total}).map((_,i)=>(
-                    <div key={i} style={{
-                      height:6,borderRadius:3,transition:'all 0.3s ease',
-                      width: i===obStep?24:6,
-                      background: i===obStep?'#00e5ff':i<obStep?'rgba(0,229,255,0.5)':'rgba(255,255,255,0.12)',
-                      boxShadow: i===obStep?'0 0 10px rgba(0,229,255,0.5)':'none'
-                    }}/>
-                  ))}
-                </div>
-                <div style={{fontSize:32,marginBottom:4}}>{s.emoji}</div>
-                <div style={{fontSize:20,fontWeight:900,color:'#00e5ff',marginBottom:8,textShadow:'0 0 12px rgba(0,229,255,0.3)'}}>
-                  {s.title}
-                </div>
-                <div style={{fontSize:15,color:'#e0e0e0',lineHeight:1.8,marginBottom:18,fontWeight:500,whiteSpace:'pre-line'}}>
-                  {s.text}
-                </div>
-                <div style={{display:'flex',gap:10}}>
-                  <button onClick={obSkip} style={{flex:1,padding:'11px 0',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,0.1)',color:'#666',fontSize:14,fontWeight:700,cursor:'pointer'}}>
-                    דלג
-                  </button>
-                  <button onClick={obNext} style={{flex:2,padding:'11px 0',borderRadius:12,border:'none',fontSize:16,fontWeight:900,cursor:'pointer',
-                    background:isFinal?'linear-gradient(135deg,#ff0080,#ff3399)':'linear-gradient(135deg,#00e5ff,#00b8d4)',
-                    color:isFinal?'#fff':'#050510',
-                    boxShadow:isFinal?'0 4px 20px rgba(255,0,128,0.4)':'0 4px 20px rgba(0,229,255,0.4)'}}>
-                    {isFinal ? (obFromMenu ? 'הבנתי! ←' : 'יאללה נתחיל! 🚀') : 'הבא ←'}
-                  </button>
-                </div>
-              </div>
+                {/* Arrow pointing up to target */}
+                {sr && !bubbleBelow && (
+                  <div style={{position:'absolute',bottom:-8,left:arrowOffset,width:0,height:0,
+                    borderLeft:'9px solid transparent',borderRight:'9px solid transparent',
+                    borderTop:'9px solid rgba(10,10,46,0.96)'}}/>
+                )}
               </div>
             </div>
           );
