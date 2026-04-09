@@ -1850,7 +1850,7 @@ export default function App() {
     { targetId:'hud-streak', emoji:'🔥', title:'קומבו', text:'רצף תשובות נכונות = מכפיל קומבו!\nככל שהרצף גדל, האימוג׳ים משתדרגים.' },
     { targetId:'hud-timer', emoji:'⏱️', title:'טיימר', text:'20 שניות לכל שאלה. עונים נכון?\nהטיימר מתקצר! עד מינימום 3 שניות.' },
     { targetId:'hud-powerups', emoji:'⚡', title:'כוחות מיוחדים', text:'SOS מסנן תשובות, ברק מדלג על שאלה,\nהקפאה עוצרת את הטיימר.' },
-    { targetId:'hud-hint', emoji:'💡', title:'רמז', text:'רואים את הכפתור הזה? 💡\nלחצו עליו ותקבלו רמז שעוזר לפתור את השאלה!\nעובד על כל נושא — שברים, שטחים, חזקות ועוד.' },
+    { targetId:'hud-hint', emoji:'💡', title:'רמז', text:'תקועים? לחצו על 💡 וקבלו רמז!\nעובד על כל נושא — שברים, שטחים, חזקות ועוד.\nהרמז לא עולה נקודות.' },
   ];
 
   const startSpotlightTutorial = () => {
@@ -1887,7 +1887,13 @@ export default function App() {
       const r = el.getBoundingClientRect();
       // Larger padding for small elements (hint button etc.)
       const pad = (r.width < 60 || r.height < 60) ? 14 : 8;
-      setSpotlightRect({ x: r.left - pad, y: r.top - pad, w: r.width + pad*2, h: r.height + pad*2 });
+      const sw = Math.max(r.width + pad*2, 64);
+      const sh = Math.max(r.height + pad*2, 64);
+      setSpotlightRect({
+        x: r.left + r.width/2 - sw/2,
+        y: r.top + r.height/2 - sh/2,
+        w: sw, h: sh
+      });
     } else {
       setSpotlightRect(null);
     }
