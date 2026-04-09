@@ -2492,14 +2492,15 @@ export default function App() {
 
             {/* Topic Selection */}
             <div className="w-full max-w-xs slide-up" style={{animationDelay:'0.05s'}}>
-              <p className="text-sm text-gray-400 text-center mb-2">בחר נושאים:</p>
-              <div className="grid grid-cols-2 gap-2">
+              <p className="text-base text-gray-300 text-center mb-3 font-bold">בחר את הנושאים שלך</p>
+              <div className="flex flex-wrap justify-center gap-2">
                 {ALL_TOPICS.filter(t => GRADES[grade].topics.includes(t.id)).map(t => {
                   const sel = selectedTopics.includes(t.id);
                   return (
                     <button key={t.id} onClick={()=>toggleTopic(t.id)}
-                      className="topic-chip rounded-xl py-2 px-2.5 text-xs font-bold border-2 text-right leading-tight"
+                      className="topic-chip rounded-xl py-2.5 px-2 text-xs font-bold border-2 text-center leading-tight"
                       style={{
+                        width:'calc(33.33% - 8px)', minWidth:'90px',
                         borderColor: sel ? t.color : 'rgba(255,255,255,0.1)',
                         background: sel ? t.color+'15' : 'rgba(255,255,255,0.02)',
                         color: sel ? t.color : '#666',
@@ -2531,7 +2532,7 @@ export default function App() {
             </button>
             <button onClick={startPractice}
               className="w-64 py-3 rounded-2xl text-lg font-bold border-2 btn-option slide-up"
-              style={{borderColor:'#a78bfa',color:'#a78bfa',background:'rgba(167,139,250,0.08)',animationDelay:'0.17s',boxShadow:'0 0 12px rgba(167,139,250,0.2)'}}>
+              style={{borderColor:'#ff9500',color:'#ff9500',background:'rgba(255,149,0,0.1)',animationDelay:'0.17s',boxShadow:'0 0 14px rgba(255,149,0,0.25)'}}>
               📝 תרגול
             </button>
             <button onClick={()=>setScreen('duelSetup')}
