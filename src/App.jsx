@@ -2407,9 +2407,10 @@ export default function App() {
               {combo && <div className="text-center text-2xl mt-2 pop-in">{combo}</div>}
               {/* Hint Button */}
               {!feedback && (
-                <button id="hud-hint" onClick={toggleHint} className="absolute -bottom-2 -left-2 w-10 h-10 rounded-full border-2 flex items-center justify-center btn-option text-lg"
-                  style={{borderColor:'#fbbf24',background:'rgba(251,191,36,0.15)',color:'#fbbf24',boxShadow:'0 2px 8px rgba(251,191,36,0.3)',zIndex:10}}>
-                  💡
+                <button id="hud-hint" onClick={toggleHint} className="absolute -bottom-2 -left-2 rounded-full border-2 flex flex-col items-center justify-center btn-option"
+                  style={{borderColor:'#fbbf24',background:'rgba(251,191,36,0.15)',color:'#fbbf24',boxShadow:'0 2px 8px rgba(251,191,36,0.3)',zIndex:10,width:'44px',height:'44px',padding:'2px 0'}}>
+                  <span style={{fontSize:'16px',lineHeight:1}}>💡</span>
+                  <span style={{fontSize:'9px',fontWeight:800,lineHeight:1,marginTop:'1px',fontFamily:'Heebo,sans-serif'}}>רמז</span>
                 </button>
               )}
             </div>
