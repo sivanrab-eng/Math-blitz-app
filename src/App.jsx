@@ -2043,6 +2043,228 @@ export default function App() {
     window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
   };
 
+  // ── Achievement Card (Canvas) for TikTok / Instagram ──
+  const [cardGenerating, setCardGenerating] = useState(false);
+  const generateAchievementCard = async () => {
+    setCardGenerating(true);
+    if(window.gtag) window.gtag('event','share_image',{event_category:'sharing',event_label:'achievement_card',score:gs.current.score});
+    try {
+      const g = gs.current;
+      const W = 1080, H = 1350;
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const ctx = c.getContext('2d');
+
+      // ── Background gradient ──
+      const bg = ctx.createLinearGradient(0,0,0,H);
+      bg.addColorStop(0,'#050510');
+      bg.addColorStop(0.5,'#0a0a2e');
+      bg.addColorStop(1,'#050510');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0,0,W,H);
+
+      // ── Grid lines ──
+      ctx.strokeStyle = 'rgba(0,229,255,0.06)';
+      ctx.lineWidth = 1;
+      for(let x=0;x<W;x+=60){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+      for(let y=0;y<H;y+=60){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+      // ── Scanlines ──
+      for(let y=0;y<H;y+=4){
+        ctx.fillStyle = 'rgba(0,0,0,0.12)';
+        ctx.fillRect(0,y,W,2);
+      }
+
+      // ── Neon glow circles ──
+      const drawGlow = (x,y,r,color) => {
+        const gr = ctx.createRadialGradient(x,y,0,x,y,r);
+        gr.addColorStop(0, color);
+        gr.addColorStop(1, 'transparent');
+        ctx.fillStyle = gr;
+        ctx.fillRect(x-r,y-r,r*2,r*2);
+      };
+      drawGlow(200,250,300,'rgba(0,229,255,0.08)');
+      drawGlow(880,900,350,'rgba(255,0,128,0.06)');
+
+      // ── Top border accent ──
+      const topLine = ctx.createLinearGradient(0,0,W,0);
+      topLine.addColorStop(0,'#ff0080');
+      topLine.addColorStop(0.5,'#00e5ff');
+      topLine.addColorStop(1,'#ff0080');
+      ctx.fillStyle = topLine;
+      ctx.fillRect(0,0,W,4);
+
+      // ── Title "מתמטיקה בלייז" ──
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      // Glow behind title
+      ctx.shadowColor = '#00e5ff';
+      ctx.shadowBlur = 30;
+      ctx.fillStyle = '#00e5ff';
+      ctx.font = 'bold 64px Orbitron, sans-serif';
+      ctx.fillText('MATH BLITZ', W/2, 100);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.font = 'bold 36px Heebo, sans-serif';
+      ctx.fillText('מתמטיקה בלייז 🧠⚡', W/2, 165);
+
+      // ── Stars ──
+      const acc = g.answered > 0 ? Math.round((g.totalCorrect||0)/g.answered*100) : 0;
+      const stars = acc >= 90 ? '⭐⭐⭐' : acc >= 70 ? '⭐⭐' : acc >= 40 ? '⭐' : '';
+      if(stars) {
+        ctx.font = '60px sans-serif';
+        ctx.fillText(stars, W/2, 260);
+      }
+
+      // ── Grade text ──
+      const gradeText = acc >= 90 ? 'מושלם! 👑' : acc >= 70 ? 'כל הכבוד! 💪' : acc >= 40 ? 'טוב, אפשר לשפר!' : 'אל תוותר! 💪';
+      ctx.fillStyle = acc >= 90 ? '#00ff88' : acc >= 70 ? '#ffaa00' : '#ff0080';
+      ctx.font = 'bold 40px Heebo, sans-serif';
+      ctx.fillText(gradeText, W/2, 340);
+
+      // ── Score box ──
+      // Glowing box background
+      ctx.fillStyle = 'rgba(0,229,255,0.06)';
+      ctx.strokeStyle = 'rgba(0,229,255,0.3)';
+      ctx.lineWidth = 2;
+      const boxX = 140, boxY = 400, boxW = W-280, boxH = 260;
+      ctx.beginPath();
+      ctx.roundRect(boxX,boxY,boxW,boxH,24);
+      ctx.fill();
+      ctx.stroke();
+
+      // Score number
+      ctx.shadowColor = '#00e5ff';
+      ctx.shadowBlur = 40;
+      ctx.fillStyle = '#00e5ff';
+      ctx.font = 'bold 120px Orbitron, sans-serif';
+      ctx.fillText(String(g.score), W/2, 510);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = 'bold 30px Heebo, sans-serif';
+      ctx.fillText('נקודות', W/2, 590);
+
+      // ── Stats row ──
+      const statsY = 740;
+      const stats = [
+        { val: String(g.maxStreak), label: '🔥 רצף', color: '#ff0080' },
+        { val: acc + '%', label: '🎯 דיוק', color: '#00e5ff' },
+        { val: String(g.answered), label: '❓ שאלות', color: '#ffaa00' },
+      ];
+      const statSpacing = 280;
+      const statStartX = W/2 - statSpacing;
+      stats.forEach((s,i) => {
+        const sx = statStartX + i * statSpacing;
+        // stat background pill
+        ctx.fillStyle = 'rgba(255,255,255,0.04)';
+        ctx.beginPath();
+        ctx.roundRect(sx-100,statsY-50,200,120,16);
+        ctx.fill();
+        ctx.fillStyle = s.color;
+        ctx.font = 'bold 48px Orbitron, sans-serif';
+        ctx.fillText(s.val, sx, statsY);
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.font = 'bold 24px Heebo, sans-serif';
+        ctx.fillText(s.label, sx, statsY + 45);
+      });
+
+      // ── Player name ──
+      const pName = playerName || DEFAULT_NAME;
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 44px Heebo, sans-serif';
+      ctx.fillText(pName, W/2, 920);
+
+      // ── Topics played ──
+      const topicIds = g.selectedTopics || selectedTopics;
+      const topicObjs = ALL_TOPICS.filter(t => topicIds.includes(t.id));
+      if(topicObjs.length > 0) {
+        const topicStr = topicObjs.map(t => t.icon + ' ' + t.name).join('  •  ');
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = '24px Heebo, sans-serif';
+        // Truncate if too long
+        const lines = [];
+        let currentLine = '';
+        topicObjs.forEach((t,i) => {
+          const add = (i>0?' • ':'') + t.icon + ' ' + t.name;
+          if(ctx.measureText(currentLine + add).width > W - 200) {
+            lines.push(currentLine);
+            currentLine = t.icon + ' ' + t.name;
+          } else {
+            currentLine += add;
+          }
+        });
+        if(currentLine) lines.push(currentLine);
+        lines.forEach((line,i) => {
+          ctx.fillText(line, W/2, 990 + i*38);
+        });
+      }
+
+      // ── High score badge ──
+      if(isHigh) {
+        ctx.shadowColor = '#ff0080';
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = '#ff0080';
+        ctx.font = 'bold 36px Heebo, sans-serif';
+        ctx.fillText('🏆 שיא חדש! 🏆', W/2, 1090);
+        ctx.shadowBlur = 0;
+      }
+
+      // ── Bottom CTA ──
+      // Gradient bar
+      const btmLine = ctx.createLinearGradient(0,0,W,0);
+      btmLine.addColorStop(0,'#ff0080');
+      btmLine.addColorStop(0.5,'#00e5ff');
+      btmLine.addColorStop(1,'#ff0080');
+      ctx.fillStyle = btmLine;
+      ctx.fillRect(100,1170,W-200,3);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = 'bold 32px Heebo, sans-serif';
+      ctx.fillText('🎮 תנסה לנצח אותי!', W/2, 1220);
+      ctx.fillStyle = 'rgba(0,229,255,0.8)';
+      ctx.font = '26px Orbitron, sans-serif';
+      ctx.fillText('sivanrab-eng.github.io/Math-blitz-app', W/2, 1270);
+
+      // ── Bottom border accent ──
+      ctx.fillStyle = btmLine;
+      ctx.fillRect(0,H-4,W,4);
+
+      // ── Convert to blob and share ──
+      c.toBlob(async (blob) => {
+        const file = new File([blob], 'math-blitz-score.png', { type: 'image/png' });
+
+        // Try Web Share API (works on Android for TikTok/Instagram)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'מתמטיקה בלייז — ' + g.score + ' נקודות!',
+              text: '🧠⚡ השגתי ' + g.score + ' נקודות במתמטיקה בלייז! תנסה לנצח אותי 😏\nhttps://sivanrab-eng.github.io/Math-blitz-app/?v=3'
+            });
+            setCardGenerating(false);
+            return;
+          } catch(e) {
+            // User cancelled or error — fall through to download
+          }
+        }
+
+        // Fallback: download the image
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'math-blitz-score.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setCardGenerating(false);
+      }, 'image/png');
+    } catch(e) {
+      console.error('Card generation error:', e);
+      setCardGenerating(false);
+    }
+  };
+
   const changeGrade = (g) => {
     setGrade(g);
     const gradeTopics = GRADES[g].topics;
@@ -3307,12 +3529,17 @@ export default function App() {
               style={{borderColor:'#25D366',color:'#25D366',background:'rgba(37,211,102,0.08)',animationDelay:'0.15s',boxShadow:'0 0 15px rgba(37,211,102,0.2)'}}>
               ⚔️ אתגר חבר בוואטסאפ
             </button>
+            <button onClick={generateAchievementCard} disabled={cardGenerating}
+              className="w-64 py-3 rounded-2xl text-lg font-bold border-2 btn-option slide-up"
+              style={{borderColor:'#E1306C',color:'#E1306C',background:'rgba(225,48,108,0.08)',animationDelay:'0.2s',boxShadow:'0 0 15px rgba(225,48,108,0.2)',opacity:cardGenerating?0.5:1}}>
+              {cardGenerating ? '⏳ יוצר תמונה...' : '📸 שתף בטיקטוק / אינסטגרם'}
+            </button>
             <button onClick={startGame}
               className="w-64 py-4 rounded-2xl text-xl font-black border-2 glow-box-cyan btn-option slide-up"
-              style={{borderColor:'#00e5ff',color:'#00e5ff',background:'rgba(0,229,255,0.08)',animationDelay:'0.25s'}}>
+              style={{borderColor:'#00e5ff',color:'#00e5ff',background:'rgba(0,229,255,0.08)',animationDelay:'0.3s'}}>
               שחק שוב ⚡
             </button>
-            <div className="flex gap-3 slide-up" style={{animationDelay:'0.3s'}}>
+            <div className="flex gap-3 slide-up" style={{animationDelay:'0.35s'}}>
               <button onClick={()=>setScreen('leaderboard')} className="text-sm text-gray-500 underline btn-option">שיאים 🏆</button>
               <button onClick={()=>setScreen('menu')} className="text-sm text-gray-600 btn-option">תפריט</button>
             </div>
